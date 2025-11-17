@@ -1,0 +1,422 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "Kai LLM API Integration",
+    "description": "OpenAI-compatible API contract for LLM Chat Interface integration with Kai server",
+    "version": "1.0.0",
+    "contact": {
+      "name": "LLM Chat Interface",
+      "url": "http://eanserver:9000"
+    }
+  },
+  "servers": [
+    {
+      "url": "http://eanserver:9000",
+      "description": "Kai LLM Server (local network)"
+    }
+  ],
+  "paths": {
+    "/v1/chat/completions": {
+      "post": {
+        "summary": "Create chat completion",
+        "description": "Generate AI response for conversation messages. Supports streaming.",
+        "operationId": "createChatCompletion",
+        "tags": ["Chat"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChatCompletionRequest"
+              },
+              "examples": {
+                "basic": {
+                  "summary": "Basic non-streaming request",
+                  "value": {
+                    "model": "granite-local",
+                    "messages": [
+                      {
+                        "role": "user",
+                        "content": "What is quantum computing?"
+                      }
+                    ],
+                    "temperature": 0.7,
+                    "stream": false
+                  }
+                },
+                "streaming": {
+                  "summary": "Streaming request",
+                  "value": {
+                    "model": "granite-local",
+                    "messages": [
+                      {
+                        "role": "system",
+                        "content": "You are a helpful assistant."
+                      },
+                      {
+                        "role": "user",
+                        "content": "Explain machine learning in simple terms."
+                      }
+                    ],
+                    "temperature": 0.7,
+                    "max_tokens": 500,
+                    "stream": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChatCompletionResponse"
+                },
+                "examples": {
+                  "nonStreaming": {
+                    "summary": "Non-streaming response",
+                    "value": {
+                      "id": "chatcmpl-abc123",
+                      "object": "chat.completion",
+                      "created": 1700236800,
+                      "model": "granite-local",
+                      "choices": [
+                        {
+                          "index": 0,
+                          "message": {
+                            "role": "assistant",
+                            "content": "Quantum computing is a type of computing that uses quantum mechanics..."
+                          },
+                          "finish_reason": "stop"
+                        }
+                      ],
+                      "usage": {
+                        "prompt_tokens": 15,
+                        "completion_tokens": 120,
+                        "total_tokens": 135
+                      }
+                    }
+                  }
+                }
+              },
+              "text/event-stream": {
+                "schema": {
+                  "type": "string",
+                  "description": "Server-Sent Events stream",
+                  "example": "data: {\"id\":\"chatcmpl-abc123\",\"object\":\"chat.completion.chunk\",\"created\":1700236800,\"model\":\"granite-local\",\"choices\":[{\"index\":0,\"delta\":{\"content\":\"Quantum\"},\"finish_reason\":null}]}\n\ndata: {\"id\":\"chatcmpl-abc123\",\"object\":\"chat.completion.chunk\",\"created\":1700236800,\"model\":\"granite-local\",\"choices\":[{\"index\":0,\"delta\":{\"content\":\" computing\"},\"finish_reason\":null}]}\n\ndata: [DONE]\n\n"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - invalid parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "message": "Invalid model name",
+                    "type": "invalid_request_error",
+                    "code": "invalid_model"
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Server error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": {
+                    "message": "Internal server error",
+                    "type": "server_error",
+                    "code": "internal_error"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/models": {
+      "get": {
+        "summary": "List available models",
+        "description": "Get list of AI models available on the server",
+        "operationId": "listModels",
+        "tags": ["Models"],
+        "responses": {
+          "200": {
+            "description": "List of models",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModelList"
+                },
+                "example": {
+                  "object": "list",
+                  "data": [
+                    {
+                      "id": "granite-local",
+                      "object": "model",
+                      "created": 0,
+                      "owned_by": "kai"
+                    },
+                    {
+                      "id": "gpt-4",
+                      "object": "model",
+                      "created": 0,
+                      "owned_by": "kai"
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/health": {
+      "get": {
+        "summary": "Health check",
+        "description": "Check API server health status",
+        "operationId": "healthCheck",
+        "tags": ["System"],
+        "responses": {
+          "200": {
+            "description": "Server is healthy",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthStatus"
+                },
+                "example": {
+                  "status": "healthy",
+                  "version": "1.0.0",
+                  "services": {
+                    "config": {
+                      "name": "configuration",
+                      "status": "healthy",
+                      "message": "Configuration loaded successfully"
+                    },
+                    "models": {
+                      "name": "model_mapping",
+                      "status": "healthy",
+                      "message": "3 models configured"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ChatCompletionRequest": {
+        "type": "object",
+        "required": ["model", "messages"],
+        "properties": {
+          "model": {
+            "type": "string",
+            "description": "Model ID to use for completion",
+            "example": "granite-local",
+            "enum": ["granite-local", "gpt-4", "gpt-3.5-turbo"]
+          },
+          "messages": {
+            "type": "array",
+            "description": "Conversation messages",
+            "items": {
+              "$ref": "#/components/schemas/Message"
+            },
+            "minItems": 1
+          },
+          "temperature": {
+            "type": "number",
+            "description": "Sampling temperature (0-2)",
+            "default": 0.7,
+            "minimum": 0,
+            "maximum": 2
+          },
+          "max_tokens": {
+            "type": "integer",
+            "description": "Maximum tokens to generate",
+            "default": 150,
+            "minimum": 1
+          },
+          "stream": {
+            "type": "boolean",
+            "description": "Enable streaming response",
+            "default": false
+          }
+        }
+      },
+      "Message": {
+        "type": "object",
+        "required": ["role", "content"],
+        "properties": {
+          "role": {
+            "type": "string",
+            "description": "Message role",
+            "enum": ["system", "user", "assistant"]
+          },
+          "content": {
+            "type": "string",
+            "description": "Message content"
+          }
+        }
+      },
+      "ChatCompletionResponse": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "description": "Unique completion ID"
+          },
+          "object": {
+            "type": "string",
+            "enum": ["chat.completion"]
+          },
+          "created": {
+            "type": "integer",
+            "description": "Unix timestamp"
+          },
+          "model": {
+            "type": "string",
+            "description": "Model used"
+          },
+          "choices": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Choice"
+            }
+          },
+          "usage": {
+            "$ref": "#/components/schemas/Usage"
+          }
+        }
+      },
+      "Choice": {
+        "type": "object",
+        "properties": {
+          "index": {
+            "type": "integer"
+          },
+          "message": {
+            "$ref": "#/components/schemas/Message"
+          },
+          "finish_reason": {
+            "type": "string",
+            "enum": ["stop", "length", "content_filter", null]
+          }
+        }
+      },
+      "Usage": {
+        "type": "object",
+        "properties": {
+          "prompt_tokens": {
+            "type": "integer"
+          },
+          "completion_tokens": {
+            "type": "integer"
+          },
+          "total_tokens": {
+            "type": "integer"
+          }
+        }
+      },
+      "ModelList": {
+        "type": "object",
+        "properties": {
+          "object": {
+            "type": "string",
+            "enum": ["list"]
+          },
+          "data": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Model"
+            }
+          }
+        }
+      },
+      "Model": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "object": {
+            "type": "string",
+            "enum": ["model"]
+          },
+          "created": {
+            "type": "integer"
+          },
+          "owned_by": {
+            "type": "string"
+          }
+        }
+      },
+      "HealthStatus": {
+        "type": "object",
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["healthy", "degraded", "unhealthy"]
+          },
+          "version": {
+            "type": "string"
+          },
+          "services": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "status": {
+                  "type": "string"
+                },
+                "message": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "object",
+            "properties": {
+              "message": {
+                "type": "string"
+              },
+              "type": {
+                "type": "string"
+              },
+              "code": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
