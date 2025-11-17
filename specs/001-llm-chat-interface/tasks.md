@@ -21,11 +21,11 @@
 
 **Purpose**: Create project structure and basic infrastructure
 
-- [ ] T001 Create directory structure: public/, src/core/, src/models/, src/ui/, src/utils/, tests/unit/, tests/integration/, tests/e2e/, .github/workflows/
-- [ ] T002 [P] Create package.json with Jest, Playwright, and marked.js dependencies
-- [ ] T003 [P] Create .gitignore with node_modules, .DS_Store, coverage, playwright-report
-- [ ] T004 [P] Create README.md with project overview and quickstart instructions
-- [ ] T005 [P] Copy PWA icons to public/icons/ (icon-192.png, icon-512.png)
+- [X] T001 Create directory structure: public/, src/core/, src/models/, src/ui/, src/utils/, tests/unit/, tests/integration/, tests/e2e/, .github/workflows/
+- [X] T002 [P] Create package.json with Jest, Playwright, and marked.js dependencies
+- [X] T003 [P] Create .gitignore with node_modules, .DS_Store, coverage, playwright-report
+- [X] T004 [P] Create README.md with project overview and quickstart instructions
+- [X] T005 [P] Copy PWA icons to public/icons/ (icon-192.png, icon-512.png)
 
 ---
 
@@ -35,17 +35,17 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T006 Create IndexedDB wrapper in src/core/storage.js with database initialization, conversation/message/settings stores, and indexes
-- [ ] T007 [P] Create application state manager in src/core/state.js with pub/sub pattern for UI updates
-- [ ] T008 [P] Create Conversation model in src/models/conversation.js with validation rules
-- [ ] T009 [P] Create Message model in src/models/message.js with validation rules and status enum
-- [ ] T010 [P] Create Settings model in src/models/settings.js with default values and validation
-- [ ] T011 Create base CSS framework in public/assets/styles.css with CSS variables, dark mode support, and minimal design system
-- [ ] T012 [P] Create DOM helper utilities in src/utils/dom.js for element creation, event handling
-- [ ] T013 [P] Create formatting utilities in src/utils/format.js for dates, text truncation
-- [ ] T014 Create main HTML skeleton in public/index.html with app container, sidebar, chat area, settings panel
-- [ ] T015 [P] Create PWA manifest in public/manifest.json based on contracts/manifest.json spec
-- [ ] T016 Create Service Worker in public/sw.js with cache-first strategy for static assets and network-first for API calls
+- [X] T006 Create IndexedDB wrapper in src/core/storage.js with database initialization, conversation/message/settings stores, and indexes
+- [X] T007 [P] Create application state manager in src/core/state.js with pub/sub pattern for UI updates
+- [X] T008 [P] Create Conversation model in src/models/conversation.js with validation rules
+- [X] T009 [P] Create Message model in src/models/message.js with validation rules and status enum
+- [X] T010 [P] Create Settings model in src/models/settings.js with default values and validation
+- [X] T011 Create base CSS framework in public/assets/styles.css with CSS variables, dark mode support, and minimal design system
+- [X] T012 [P] Create DOM helper utilities in src/utils/dom.js for element creation, event handling
+- [X] T013 [P] Create formatting utilities in src/utils/format.js for dates, text truncation
+- [X] T014 Create main HTML skeleton in public/index.html with app container, sidebar, chat area, settings panel
+- [X] T015 [P] Create PWA manifest in public/manifest.json based on contracts/manifest.json spec
+- [X] T016 Create Service Worker in public/sw.js with cache-first strategy for static assets and network-first for API calls
 
 **Checkpoint**: ✓ Foundation ready - user story implementation can now begin in parallel
 
@@ -59,16 +59,16 @@
 
 ### Implementation for User Story 1
 
-- [ ] T017 [P] [US1] Create Kai API client in src/core/api.js with POST /v1/chat/completions non-streaming support
-- [ ] T018 [P] [US1] Create chat UI component in src/ui/chat.js with message list, input field, send button
-- [ ] T019 [P] [US1] Create reusable UI components in src/ui/components.js (button, input, message bubble, loading spinner)
-- [ ] T020 [US1] Implement message sending in src/ui/chat.js: validate input, create user message, save to IndexedDB, call API
-- [ ] T021 [US1] Implement message receiving in src/ui/chat.js: parse API response, create assistant message, save to IndexedDB, display
-- [ ] T022 [US1] Add loading indicator during API request in src/ui/chat.js
-- [ ] T023 [US1] Implement message rendering with user/assistant visual distinction in src/ui/chat.js
-- [ ] T024 [US1] Add empty state UI ("Start a conversation") in src/ui/chat.js
-- [ ] T025 [US1] Prevent duplicate sends while request in progress in src/ui/chat.js
-- [ ] T026 [US1] Wire up chat UI to main app in public/index.html with module imports
+- [X] T017 [P] [US1] Create Kai API client in src/core/api.js with POST /v1/chat/completions non-streaming support
+- [X] T018 [P] [US1] Create chat UI component in src/ui/chat.js with message list, input field, send button
+- [X] T019 [P] [US1] Create reusable UI components in src/ui/components.js (button, input, message bubble, loading spinner)
+- [X] T020 [US1] Implement message sending in src/ui/chat.js: validate input, create user message, save to IndexedDB, call API
+- [X] T021 [US1] Implement message receiving in src/ui/chat.js: parse API response, create assistant message, save to IndexedDB, display
+- [X] T022 [US1] Add loading indicator during API request in src/ui/chat.js
+- [X] T023 [US1] Implement message rendering with user/assistant visual distinction in src/ui/chat.js
+- [X] T024 [US1] Add empty state UI ("Start a conversation") in src/ui/chat.js
+- [X] T025 [US1] Prevent duplicate sends while request in progress in src/ui/chat.js
+- [X] T026 [US1] Wire up chat UI to main app in public/index.html with module imports
 
 **Checkpoint**: ✓ User Story 1 complete - Can send/receive messages with basic UI
 

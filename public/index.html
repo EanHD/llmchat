@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="description" content="LLM Chat Interface - A minimal ChatGPT clone">
+  <meta name="theme-color" content="#2563eb">
+  
+  <!-- PWA -->
+  <link rel="manifest" href="/manifest.json">
+  <link rel="icon" type="image/svg+xml" href="/icons/icon-192.svg">
+  <link rel="apple-touch-icon" href="/icons/icon-192.svg">
+  
+  <!-- Styles -->
+  <link rel="stylesheet" href="/assets/styles.css">
+  
+  <title>LLM Chat</title>
+</head>
+<body>
+  <div id="app">
+    <!-- Sidebar -->
+    <aside id="sidebar" class="sidebar">
+      <div class="sidebar-header">
+        <button id="new-chat-btn" class="primary">New Chat</button>
+      </div>
+      <div id="conversation-list" class="conversation-list">
+        <!-- Conversation items will be rendered here -->
+      </div>
+      <div class="sidebar-footer">
+        <button id="settings-btn" class="icon" aria-label="Settings">
+          <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="10" cy="10" r="3"/>
+            <path d="M10 1v3m0 12v3M4.22 4.22l2.12 2.12m7.44 7.44l2.12 2.12M1 10h3m12 0h3M4.22 15.78l2.12-2.12m7.44-7.44l2.12-2.12"/>
+          </svg>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Chat Area -->
+    <main id="main" class="main">
+      <header id="chat-header" class="chat-header">
+        <button id="sidebar-toggle" class="icon" aria-label="Toggle sidebar">
+          <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M3 12h18M3 6h18M3 18h18"/>
+          </svg>
+        </button>
+        <h1 id="chat-title">New Chat</h1>
+      </header>
+
+      <div id="chat-container" class="chat-container">
+        <div id="messages" class="messages">
+          <!-- Messages will be rendered here -->
+        </div>
+      </div>
+
+      <div id="input-area" class="input-area">
+        <form id="message-form" class="message-form">
+          <textarea 
+            id="message-input" 
+            class="message-input" 
+            placeholder="Send a message..." 
+            rows="1"
+            aria-label="Message input"
+          ></textarea>
+          <button type="submit" id="send-btn" class="icon primary" aria-label="Send message">
+            <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
+            </svg>
+          </button>
+        </form>
+      </div>
+    </main>
+
+    <!-- Settings Panel (Hidden by default) -->
+    <div id="settings-panel" class="settings-panel hidden">
+      <div class="settings-header">
+        <h2>Settings</h2>
+        <button id="close-settings-btn" class="icon" aria-label="Close settings">
+          <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 6L6 18M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+      <div class="settings-content">
+        <!-- Settings form will be rendered here -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Load app as ES module -->
+  <script type="module" src="/app.js"></script>
+  
+  <!-- Register Service Worker -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+          .then(reg => console.log('Service Worker registered:', reg.scope))
+          .catch(err => console.error('Service Worker registration failed:', err));
+      });
+    }
+  </script>
+</body>
+</html>
