@@ -84,13 +84,13 @@
 
 ### Implementation for User Story 6
 
-- [ ] T027 [P] [US6] Extend API client in src/core/api.js to support streaming with ReadableStream parser for SSE format
-- [ ] T028 [US6] Implement streaming response handler in src/ui/chat.js: parse SSE chunks, append delta.content to message
-- [ ] T029 [US6] Add stop button during streaming in src/ui/chat.js with AbortController
-- [ ] T030 [US6] Update message status (pending → streaming → complete) in IndexedDB during stream
-- [ ] T031 [US6] Implement auto-scroll during streaming to keep newest content visible
-- [ ] T032 [US6] Add error handling for stream interruptions (network loss, server error)
-- [ ] T033 [US6] Show streaming indicator (cursor/pulse) on active assistant message
+- [X] T027 [P] [US6] Extend API client in src/core/api.js to support streaming with ReadableStream parser for SSE format
+- [X] T028 [US6] Implement streaming response handler in src/ui/chat.js: parse SSE chunks, append delta.content to message
+- [X] T029 [US6] Add stop button during streaming in src/ui/chat.js with AbortController
+- [X] T030 [US6] Update message status (pending → streaming → complete) in IndexedDB during stream
+- [X] T031 [US6] Implement auto-scroll during streaming to keep newest content visible
+- [X] T032 [US6] Add error handling for stream interruptions (network loss, server error)
+- [X] T033 [US6] Show streaming indicator (cursor/pulse) on active assistant message
 
 **Checkpoint**: ✓ User Story 6 complete - Responses stream in real-time
 

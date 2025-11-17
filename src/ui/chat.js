@@ -42,6 +42,7 @@ export class ChatUI {
     state.subscribe('messages', (messages) => this.renderMessages(messages));
     state.subscribe('currentConversationId', (id) => this.handleConversationChange(id));
     state.subscribe('isLoading', (isLoading) => this.updateLoadingState(isLoading));
+    state.subscribe('isStreaming', (isStreaming) => this.handleStreamingState(isStreaming));
 
     // Show empty state initially
     this.showEmptyState();
@@ -151,33 +152,20 @@ export class ChatUI {
           content: m.content
         }));
 
-      // Send to API (non-streaming for now)
+      // Get settings
       const settings = await storage.getAllSettings();
-      const response = await this.apiClient.sendMessage(apiMessages, {
-        model: settings.model,
-        temperature: settings.temperature,
-        maxTokens: settings.maxTokens
-      });
 
-      // Update assistant message with response
-      const responseContent = response.choices[0].message.content;
-      assistantMessage.updateContent(responseContent);
-      assistantMessage.updateStatus(MessageStatus.COMPLETE);
-      
-      if (response.usage) {
-        assistantMessage.tokenCount = response.usage.total_tokens;
+      // Check if streaming is enabled
+      if (settings.streaming) {
+        await this.streamResponse(assistantMessage, apiMessages, settings);
+      } else {
+        await this.fetchResponse(assistantMessage, apiMessages, settings);
       }
-
-      await storage.saveMessage(assistantMessage.toJSON());
-      state.updateMessage(assistantMessage.id, assistantMessage.toJSON());
 
       // Update conversation
       const conversation = await storage.getConversation(conversationId);
       conversation.messageCount = messages.length + 2;
       conversation.updatedAt = Date.now();
-      if (response.model) {
-        conversation.model = response.model;
-      }
       await storage.saveConversation(conversation);
 
       // Scroll to bottom
@@ -199,6 +187,72 @@ export class ChatUI {
     } finally {
       this.isSubmitting = false;
       this.updateSendButton(false);
+      state.setStreaming(false);
+    }
+  }
+
+  /**
+   * Fetch response (non-streaming)
+   */
+  async fetchResponse(assistantMessage, apiMessages, settings) {
+    const response = await this.apiClient.sendMessage(apiMessages, {
+      model: settings.model,
+      temperature: settings.temperature,
+      maxTokens: settings.maxTokens
+    });
+
+    // Update assistant message with response
+    const responseContent = response.choices[0].message.content;
+    assistantMessage.updateContent(responseContent);
+    assistantMessage.updateStatus(MessageStatus.COMPLETE);
+    
+    if (response.usage) {
+      assistantMessage.tokenCount = response.usage.total_tokens;
+    }
+
+    await storage.saveMessage(assistantMessage.toJSON());
+    state.updateMessage(assistantMessage.id, assistantMessage.toJSON());
+  }
+
+  /**
+   * Stream response (streaming)
+   */
+  async streamResponse(assistantMessage, apiMessages, settings) {
+    state.setStreaming(true);
+    assistantMessage.updateStatus(MessageStatus.STREAMING);
+    state.updateMessage(assistantMessage.id, assistantMessage.toJSON());
+
+    try {
+      const stream = this.apiClient.streamMessage(apiMessages, {
+        model: settings.model,
+        temperature: settings.temperature,
+        maxTokens: settings.maxTokens
+      });
+
+      for await (const delta of stream) {
+        if (delta.content) {
+          assistantMessage.appendContent(delta.content);
+          state.updateMessage(assistantMessage.id, assistantMessage.toJSON());
+          
+          // Auto-scroll during streaming
+          if (settings.autoScroll !== false) {
+            this.scrollToBottom();
+          }
+        }
+      }
+
+      // Mark as complete
+      assistantMessage.updateStatus(MessageStatus.COMPLETE);
+      await storage.saveMessage(assistantMessage.toJSON());
+      state.updateMessage(assistantMessage.id, assistantMessage.toJSON());
+
+    } catch (error) {
+      console.error('Streaming error:', error);
+      assistantMessage.updateStatus(MessageStatus.ERROR);
+      assistantMessage.content += '\n\n[Streaming interrupted]';
+      await storage.saveMessage(assistantMessage.toJSON());
+      state.updateMessage(assistantMessage.id, assistantMessage.toJSON());
+      throw error;
     }
   }
 
@@ -206,6 +260,15 @@ export class ChatUI {
    * Render messages
    */
   renderMessages(messages) {
+    // During streaming, update message content in place instead of full re-render
+    if (state.getState('isStreaming')) {
+      const lastMessage = messages[messages.length - 1];
+      if (lastMessage) {
+        this.updateMessageContent(lastMessage.id, lastMessage.content);
+        return;
+      }
+    }
+
     clearElement(this.messagesContainer);
 
     if (messages.length === 0) {
@@ -219,6 +282,26 @@ export class ChatUI {
     });
 
     this.scrollToBottom();
+  }
+
+  /**
+   * Update message in place (for streaming)
+   */
+  updateMessageContent(messageId, content) {
+    const messageEl = this.messagesContainer.querySelector(`[data-message-id="${messageId}"]`);
+    if (messageEl) {
+      const contentEl = messageEl.querySelector('.message-content');
+      if (contentEl) {
+        contentEl.textContent = content || '';
+      }
+    }
+  }
+
+  /**
+   * Handle streaming state changes
+   */
+  handleStreamingState(isStreaming) {
+    // Could add UI indicators here (e.g., stop button)
   }
 
   /**

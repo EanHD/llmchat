@@ -67,10 +67,12 @@ export function createMessageBubble(message) {
   const messageContent = createElement('div', {
     className: 'message-content'
   });
-  messageContent.textContent = content;
+  
+  // Set content as text or render markdown if enabled
+  messageContent.textContent = content || (status === 'streaming' ? '' : '...');
 
   const messageEl = createElement('div', {
-    className: `message ${role} ${status}`,
+    className: `message ${role} ${status || ''}`,
     dataset: { messageId: message.id }
   }, avatar, messageContent);
 
