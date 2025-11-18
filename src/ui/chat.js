@@ -16,6 +16,7 @@ import { generateTitle } from '../utils/format.js';
 export class ChatUI {
   constructor() {
     this.messagesContainer = $('#messages');
+    this.chatContainer = $('#chat-container');
     this.messageInput = $('#message-input');
     this.messageForm = $('#message-form');
     this.sendBtn = $('#send-btn');
@@ -24,6 +25,8 @@ export class ChatUI {
     this.apiClient = null;
     this.isSubmitting = false;
     this.abortController = null; // For canceling streaming requests
+    this.scrollToBottomBtn = null; // Scroll to bottom button
+    this.userScrolledUp = false; // Track if user has scrolled up
 
     this.init();
   }
@@ -34,6 +37,9 @@ export class ChatUI {
   async init() {
     // Set up event listeners FIRST, before any async operations
     this.setupEventListeners();
+    
+    // Create scroll to bottom button
+    this.createScrollToBottomButton();
     
     // Get API endpoint from settings
     const settings = await storage.getAllSettings();
@@ -326,8 +332,8 @@ export class ChatUI {
             // Update DOM directly without triggering full re-render
             await this.updateMessageContent(assistantMessage.id, assistantMessage.content);
             
-            // Auto-scroll during streaming
-            if (settings.autoScroll !== false) {
+            // Auto-scroll during streaming only if user is at bottom
+            if (this.isAtBottom()) {
               this.scrollToBottom();
             }
             
@@ -514,10 +520,16 @@ export class ChatUI {
   /**
    * Scroll to bottom
    */
-  scrollToBottom() {
-    const container = this.messagesContainer.parentElement;
-    setTimeout(() => {
-      container.scrollTop = container.scrollHeight;
-    }, 0);
+  scrollToBottom(force = false) {
+    // Only auto-scroll if user is at bottom or force is true
+    if (force || this.isAtBottom()) {
+      setTimeout(() => {
+        this.chatContainer.scrollTop = this.chatContainer.scrollHeight;
+        this.userScrolledUp = false;
+        if (this.scrollToBottomBtn) {
+          this.scrollToBottomBtn.style.display = 'none';
+        }
+      }, 0);
+    }
   }
 }
