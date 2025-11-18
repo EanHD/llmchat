@@ -315,8 +315,11 @@ export class ChatUI {
    * Fetch response (non-streaming)
    */
   async fetchResponse(assistantMessage, apiMessages, settings) {
+    // Ensure model is always set
+    const modelToUse = settings.model || 'granite-local';
+    
     const response = await this.apiClient.sendMessage(apiMessages, {
-      model: settings.model || 'granite-local',
+      model: modelToUse,
       temperature: settings.temperature,
       maxTokens: settings.maxTokens
     });
@@ -356,9 +359,15 @@ export class ChatUI {
     this.abortController = new AbortController();
 
     try {
+      console.log('[ChatUI] Settings:', settings);
       console.log('[ChatUI] Creating stream with model:', settings.model || 'granite-local');
+      
+      // Ensure model is always set
+      const modelToUse = settings.model || 'granite-local';
+      console.log('[ChatUI] Using model:', modelToUse);
+      
       const stream = this.apiClient.streamMessage(apiMessages, {
-        model: settings.model || 'granite-local',
+        model: modelToUse,
         temperature: settings.temperature,
         maxTokens: settings.maxTokens,
         signal: this.abortController.signal
