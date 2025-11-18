@@ -277,8 +277,20 @@ export class ChatUI {
         conversation.messageCount = currentMessages.length;
         conversation.updatedAt = Date.now();
         
+        // Auto-generate title from first user message if still "New Chat"
+        if (conversation.title === 'New Chat' && currentMessages.length >= 2) {
+          const firstUserMsg = currentMessages.find(m => m.role === MessageRole.USER);
+          if (firstUserMsg) {
+            conversation.title = generateTitle(firstUserMsg.content, 60);
+          }
+        }
+        
         try {
           await storage.saveConversation(conversation);
+          
+          // Update conversations list to reflect new title
+          const conversations = await storage.getAllConversations();
+          state.setConversations(conversations);
         } catch (storageError) {
           console.error('Failed to update conversation metadata:', storageError);
           // Non-critical, continue
