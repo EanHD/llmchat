@@ -14,38 +14,47 @@ export class MarkdownRenderer {
    * Configure marked options
    */
   initializeMarked() {
-    marked.setOptions({
-      gfm: true, // GitHub Flavored Markdown
-      breaks: true, // Convert \n to <br>
-      headerIds: false, // Don't add IDs to headers
-      mangle: false, // Don't escape email addresses
-      sanitize: false // We'll handle sanitization separately
-    });
-
     // Custom renderer for code blocks
-    const renderer = new marked.Renderer();
-    
-    // Customize code block rendering
-    renderer.code = (code, language) => {
-      const lang = language || 'plaintext';
-      const escaped = this.escapeHtml(code);
-      
-      return `
+    const renderer = {
+      code(code, language) {
+        const lang = language || 'plaintext';
+        const escaped = code
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+        
+        const escapedForAttr = code
+          .replace(/&/g, '&amp;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+        
+        return `
 <div class="code-block">
   <div class="code-header">
     <span class="code-language">${lang}</span>
-    <button class="code-copy-btn" data-code="${this.escapeAttribute(code)}">Copy</button>
+    <button class="code-copy-btn" data-code="${escapedForAttr}">Copy</button>
   </div>
   <pre><code class="language-${lang}">${escaped}</code></pre>
 </div>`;
+      },
+      codespan(code) {
+        const escaped = code
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+          .replace(/'/g, '&#39;');
+        return `<code>${escaped}</code>`;
+      }
     };
 
-    // Customize inline code rendering
-    renderer.codespan = (code) => {
-      return `<code>${this.escapeHtml(code)}</code>`;
-    };
-
-    marked.use({ renderer });
+    marked.use({
+      gfm: true,
+      breaks: true,
+      renderer
+    });
   }
 
   /**
