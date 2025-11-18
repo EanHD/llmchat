@@ -297,8 +297,8 @@
 - [ ] T125 [P] Optimize Service Worker caching: version static assets, clear old caches
 - [ ] T126 Add performance monitoring: measure First Contentful Paint, Time to Interactive
 - [ ] T127 Verify performance goals met: FCP <1s, streaming start <2s, conversation switch <500ms
-- [ ] T128 [P] Add meta tags for SEO: description, keywords, Open Graph
-- [ ] T129 [P] Add favicon and Apple touch icon
+- [X] T128 [P] Add meta tags for SEO: description, keywords, Open Graph
+- [X] T129 [P] Add favicon and Apple touch icon
 - [ ] T130 Code cleanup: remove console.logs, dead code, unused variables
 - [ ] T131 [P] Run linter and fix all warnings
 - [ ] T132 Security review: check for XSS vulnerabilities, CSP headers, sanitization
