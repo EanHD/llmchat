@@ -13,7 +13,7 @@ export class KaiAPIClient {
    */
   async sendMessage(messages, options = {}) {
     const {
-      model = null,
+      model = 'granite-local',
       temperature = 0.7,
       maxTokens = null,
       stream = false,
@@ -21,7 +21,7 @@ export class KaiAPIClient {
     } = options;
 
     const payload = {
-      model: model || undefined,
+      model: model || 'granite-local',
       messages,
       temperature,
       stream: false
@@ -93,14 +93,14 @@ export class KaiAPIClient {
    */
   async *streamMessage(messages, options = {}) {
     const {
-      model = null,
+      model = 'granite-local',
       temperature = 0.7,
       maxTokens = null,
       timeout = 30000 // 30 second timeout
     } = options;
 
     const payload = {
-      model: model || undefined,
+      model: model || 'granite-local',
       messages,
       temperature,
       stream: true

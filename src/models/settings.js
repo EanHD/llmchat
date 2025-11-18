@@ -4,8 +4,8 @@
  */
 
 export const DEFAULT_SETTINGS = {
-  apiEndpoint: 'https://eanserver:9000',
-  model: null, // Auto-select from available models
+  apiEndpoint: 'https://bulllike-stephanie-lastingly.ngrok-free.dev',
+  model: 'granite-local', // Default model
   theme: 'auto', // 'light', 'dark', 'auto'
   streaming: true,
   markdown: true,
