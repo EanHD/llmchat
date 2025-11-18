@@ -285,6 +285,7 @@ export class ChatUI {
    * Stream response (streaming)
    */
   async streamResponse(assistantMessage, apiMessages, settings) {
+    console.log('[ChatUI] streamResponse called with settings:', settings);
     // Update message status first, BEFORE setting streaming flag
     // This allows the initial render to happen with the assistant placeholder
     assistantMessage.updateStatus(MessageStatus.STREAMING);
@@ -302,12 +303,15 @@ export class ChatUI {
     this.abortController = new AbortController();
 
     try {
+      console.log('[ChatUI] Creating stream with model:', settings.model || 'granite-local');
       const stream = this.apiClient.streamMessage(apiMessages, {
         model: settings.model || 'granite-local',
         temperature: settings.temperature,
         maxTokens: settings.maxTokens,
         signal: this.abortController.signal
       });
+      
+      console.log('[ChatUI] Stream created, starting iteration');
 
       for await (const delta of stream) {
         console.log('[ChatUI] Received delta:', delta);

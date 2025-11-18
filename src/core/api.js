@@ -92,6 +92,7 @@ export class KaiAPIClient {
    * Send chat completion request (streaming)
    */
   async *streamMessage(messages, options = {}) {
+    console.log('[API] streamMessage called with options:', options);
     const {
       model = 'granite-local',
       temperature = 0.7,
@@ -109,6 +110,8 @@ export class KaiAPIClient {
     if (maxTokens) {
       payload.max_tokens = maxTokens;
     }
+    
+    console.log('[API] Request payload:', payload);
 
     // Create AbortController for timeout if not provided
     const controller = options.signal ? null : new AbortController();
@@ -120,6 +123,7 @@ export class KaiAPIClient {
     }, timeout);
 
     try {
+      console.log('[API] Sending fetch request to:', `${this.baseURL}/v1/chat/completions`);
       const response = await fetch(`${this.baseURL}/v1/chat/completions`, {
         method: 'POST',
         headers: {
@@ -129,11 +133,13 @@ export class KaiAPIClient {
         signal
       });
 
+      console.log('[API] Response received, status:', response.status);
       if (!response.ok) {
         const error = await response.text();
         throw new Error(`API error: ${response.status} - ${error}`);
       }
 
+      console.log('[API] Starting to read response stream');
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let buffer = '';
@@ -143,6 +149,7 @@ export class KaiAPIClient {
       try {
         while (true) {
           const { done, value } = await reader.read();
+          console.log('[API] Read chunk, done:', done, 'bytes:', value?.length);
           
           if (done) break;
 
