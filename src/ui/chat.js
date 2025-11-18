@@ -263,9 +263,13 @@ export class ChatUI {
    * Stream response (streaming)
    */
   async streamResponse(assistantMessage, apiMessages, settings) {
-    state.setStreaming(true);
+    // Update message status first, BEFORE setting streaming flag
+    // This allows the initial render to happen with the assistant placeholder
     assistantMessage.updateStatus(MessageStatus.STREAMING);
     state.updateMessage(assistantMessage.id, assistantMessage.toJSON());
+    
+    // NOW set streaming to prevent subsequent full re-renders
+    state.setStreaming(true);
 
     let lastSaveTime = Date.now();
     let lastRenderTime = Date.now();
@@ -365,8 +369,12 @@ export class ChatUI {
    */
   async renderMessages(messages) {
     // During streaming, don't re-render - updates are handled in streamResponse
+    // UNLESS the container is empty (initial render after adding messages)
     if (state.getState('isStreaming')) {
-      return;
+      // Only skip if messages are already rendered
+      if (this.messagesContainer.children.length > 0) {
+        return;
+      }
     }
 
     clearElement(this.messagesContainer);
