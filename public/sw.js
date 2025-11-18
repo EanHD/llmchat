@@ -3,7 +3,7 @@
  * Cache-first for static assets, network-first for API calls
  */
 
-const CACHE_VERSION = '1.0.1';
+const CACHE_VERSION = '1.0.2';
 const CACHE_NAME = `llmchat-v${CACHE_VERSION}`;
 
 // Use relative paths that work in subdirectories
