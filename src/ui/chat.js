@@ -23,6 +23,7 @@ export class ChatUI {
     
     this.apiClient = null;
     this.isSubmitting = false;
+    this.abortController = null; // For canceling streaming requests
 
     this.init();
   }
@@ -53,10 +54,16 @@ export class ChatUI {
    * Set up event listeners
    */
   setupEventListeners() {
-    // Form submission
+    // Form submission / stop streaming
     this.messageForm.addEventListener('submit', (e) => {
       e.preventDefault();
-      this.handleSendMessage();
+      
+      // If currently streaming, stop it
+      if (state.getState('isStreaming')) {
+        this.stopStreaming();
+      } else {
+        this.handleSendMessage();
+      }
     });
 
     // Auto-resize textarea
@@ -70,6 +77,12 @@ export class ChatUI {
       const settings = await storage.getAllSettings();
       if (e.key === 'Enter' && !e.shiftKey && settings.sendOnEnter !== false) {
         e.preventDefault();
+        
+        // If streaming, don't send new message
+        if (state.getState('isStreaming')) {
+          return;
+        }
+        
         this.handleSendMessage();
       }
     });
@@ -118,7 +131,13 @@ export class ChatUI {
           title: generateTitle(content, 50),
           model: null // Will be set when we get response
         });
-        await storage.saveConversation(conversation.toJSON());
+        
+        try {
+          await storage.saveConversation(conversation.toJSON());
+        } catch (storageError) {
+          throw new Error(`Failed to save conversation: ${storageError.message}`);
+        }
+        
         conversationId = conversation.id;
         state.setCurrentConversation(conversationId);
         
@@ -129,7 +148,13 @@ export class ChatUI {
 
       // Create user message
       const userMessage = Message.createUserMessage(conversationId, content);
-      await storage.saveMessage(userMessage.toJSON());
+      
+      try {
+        await storage.saveMessage(userMessage.toJSON());
+      } catch (storageError) {
+        throw new Error(`Failed to save message: ${storageError.message}`);
+      }
+      
       state.addMessage(userMessage.toJSON());
 
       // Clear input
@@ -138,15 +163,22 @@ export class ChatUI {
 
       // Create assistant message (pending)
       const assistantMessage = Message.createAssistantMessage(conversationId);
-      await storage.saveMessage(assistantMessage.toJSON());
+      
+      try {
+        await storage.saveMessage(assistantMessage.toJSON());
+      } catch (storageError) {
+        console.error('Failed to save assistant placeholder:', storageError);
+        // Continue anyway - will be saved after response
+      }
+      
       state.addMessage(assistantMessage.toJSON());
 
       // Scroll to bottom
       this.scrollToBottom();
 
-      // Get conversation history
-      const messages = await storage.getMessagesByConversation(conversationId);
-      const apiMessages = messages
+      // Get conversation history from STATE (not storage) to avoid race conditions
+      const stateMessages = state.getState('messages');
+      const apiMessages = stateMessages
         .filter(m => m.role !== 'system' && m.status === MessageStatus.COMPLETE)
         .map(m => ({
           role: m.role,
@@ -163,18 +195,30 @@ export class ChatUI {
         await this.fetchResponse(assistantMessage, apiMessages, settings);
       }
 
-      // Update conversation
+      // Update conversation metadata using current message count from state
+      const currentMessages = state.getState('messages');
       const conversation = await storage.getConversation(conversationId);
-      conversation.messageCount = messages.length + 2;
-      conversation.updatedAt = Date.now();
-      await storage.saveConversation(conversation);
+      if (conversation) {
+        conversation.messageCount = currentMessages.length;
+        conversation.updatedAt = Date.now();
+        
+        try {
+          await storage.saveConversation(conversation);
+        } catch (storageError) {
+          console.error('Failed to update conversation metadata:', storageError);
+          // Non-critical, continue
+        }
+      }
 
       // Scroll to bottom
       this.scrollToBottom();
 
     } catch (error) {
       console.error('Failed to send message:', error);
-      state.setError(error.message);
+      
+      // Show user-friendly error message
+      const userMessage = error.message || 'An unexpected error occurred';
+      state.setError(userMessage);
       
       // Update assistant message to error state
       const messages = state.getState('messages');
@@ -223,37 +267,96 @@ export class ChatUI {
     assistantMessage.updateStatus(MessageStatus.STREAMING);
     state.updateMessage(assistantMessage.id, assistantMessage.toJSON());
 
+    let lastSaveTime = Date.now();
+    let lastRenderTime = Date.now();
+    const SAVE_INTERVAL = 2000; // Save every 2 seconds during streaming
+    const RENDER_INTERVAL = 100; // Update UI every 100ms max
+    
+    // Create AbortController for cancellation
+    this.abortController = new AbortController();
+
     try {
       const stream = this.apiClient.streamMessage(apiMessages, {
         model: settings.model,
         temperature: settings.temperature,
-        maxTokens: settings.maxTokens
+        maxTokens: settings.maxTokens,
+        signal: this.abortController.signal
       });
 
       for await (const delta of stream) {
         if (delta.content) {
           assistantMessage.appendContent(delta.content);
-          state.updateMessage(assistantMessage.id, assistantMessage.toJSON());
           
-          // Auto-scroll during streaming
-          if (settings.autoScroll !== false) {
-            this.scrollToBottom();
+          const now = Date.now();
+          
+          // Debounced UI update - only render every 100ms
+          if (now - lastRenderTime >= RENDER_INTERVAL) {
+            // Update DOM directly without triggering full re-render
+            await this.updateMessageContent(assistantMessage.id, assistantMessage.content);
+            
+            // Auto-scroll during streaming
+            if (settings.autoScroll !== false) {
+              this.scrollToBottom();
+            }
+            
+            lastRenderTime = now;
+          }
+          
+          // Periodic save to prevent data loss
+          if (now - lastSaveTime >= SAVE_INTERVAL) {
+            try {
+              await storage.saveMessage(assistantMessage.toJSON());
+              lastSaveTime = now;
+            } catch (saveError) {
+              console.error('Failed to save streaming message:', saveError);
+              // Continue streaming even if save fails
+            }
           }
         }
       }
 
-      // Mark as complete
+      // Final update and save
+      await this.updateMessageContent(assistantMessage.id, assistantMessage.content);
       assistantMessage.updateStatus(MessageStatus.COMPLETE);
       await storage.saveMessage(assistantMessage.toJSON());
       state.updateMessage(assistantMessage.id, assistantMessage.toJSON());
 
     } catch (error) {
       console.error('Streaming error:', error);
-      assistantMessage.updateStatus(MessageStatus.ERROR);
-      assistantMessage.content += '\n\n[Streaming interrupted]';
-      await storage.saveMessage(assistantMessage.toJSON());
+      
+      // Check if it was cancelled by user
+      if (error.name === 'AbortError' || error.message.includes('aborted')) {
+        assistantMessage.updateStatus(MessageStatus.ERROR);
+        assistantMessage.content += '\n\n[Streaming stopped by user]';
+      } else {
+        assistantMessage.updateStatus(MessageStatus.ERROR);
+        assistantMessage.content += '\n\n[Streaming interrupted: ' + error.message + ']';
+      }
+      
+      try {
+        await storage.saveMessage(assistantMessage.toJSON());
+      } catch (saveError) {
+        console.error('Failed to save error state:', saveError);
+      }
+      
       state.updateMessage(assistantMessage.id, assistantMessage.toJSON());
-      throw error;
+      
+      // Only re-throw if not a user cancellation
+      if (error.name !== 'AbortError' && !error.message.includes('aborted')) {
+        throw error;
+      }
+    } finally {
+      this.abortController = null;
+    }
+  }
+
+  /**
+   * Stop streaming response
+   */
+  stopStreaming() {
+    if (this.abortController) {
+      this.abortController.abort();
+      this.abortController = null;
     }
   }
 
@@ -261,13 +364,9 @@ export class ChatUI {
    * Render messages
    */
   async renderMessages(messages) {
-    // During streaming, update message content in place instead of full re-render
+    // During streaming, don't re-render - updates are handled in streamResponse
     if (state.getState('isStreaming')) {
-      const lastMessage = messages[messages.length - 1];
-      if (lastMessage) {
-        await this.updateMessageContent(lastMessage.id, lastMessage.content);
-        return;
-      }
+      return;
     }
 
     clearElement(this.messagesContainer);
@@ -323,7 +422,22 @@ export class ChatUI {
    * Handle streaming state changes
    */
   handleStreamingState(isStreaming) {
-    // Could add UI indicators here (e.g., stop button)
+    const sendIcon = document.getElementById('send-icon');
+    const stopIcon = document.getElementById('stop-icon');
+    
+    if (isStreaming) {
+      // Show stop icon, hide send icon
+      if (sendIcon) sendIcon.style.display = 'none';
+      if (stopIcon) stopIcon.style.display = 'block';
+      this.sendBtn.setAttribute('aria-label', 'Stop streaming');
+      this.sendBtn.title = 'Stop streaming';
+    } else {
+      // Show send icon, hide stop icon
+      if (sendIcon) sendIcon.style.display = 'block';
+      if (stopIcon) stopIcon.style.display = 'none';
+      this.sendBtn.setAttribute('aria-label', 'Send message');
+      this.sendBtn.title = 'Send message';
+    }
   }
 
   /**

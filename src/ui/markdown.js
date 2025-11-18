@@ -107,6 +107,8 @@ export class MarkdownRenderer {
       'span': ['class'],
       'button': ['class', 'data-code']
     };
+    
+    const allowedProtocols = ['http:', 'https:', 'mailto:'];
 
     const div = document.createElement('div');
     div.innerHTML = html;
@@ -128,6 +130,41 @@ export class MarkdownRenderer {
           element.removeAttribute(attr.name);
         }
       });
+      
+      // Sanitize href attributes (block javascript:, data:, etc.)
+      if (tagName === 'a' && element.hasAttribute('href')) {
+        const href = element.getAttribute('href');
+        try {
+          const url = new URL(href, window.location.href);
+          if (!allowedProtocols.includes(url.protocol)) {
+            element.removeAttribute('href');
+            console.warn('Blocked potentially malicious link:', href);
+          }
+        } catch {
+          // Relative URLs or invalid URLs - remove to be safe
+          if (href.includes(':')) {
+            element.removeAttribute('href');
+            console.warn('Blocked potentially malicious link:', href);
+          }
+        }
+      }
+      
+      // Sanitize img src (block javascript:, data: URLs except safe images)
+      if (tagName === 'img' && element.hasAttribute('src')) {
+        const src = element.getAttribute('src');
+        try {
+          const url = new URL(src, window.location.href);
+          if (!allowedProtocols.includes(url.protocol)) {
+            // Allow data: URLs only for images
+            if (!src.startsWith('data:image/')) {
+              element.removeAttribute('src');
+              console.warn('Blocked potentially malicious image:', src);
+            }
+          }
+        } catch {
+          // Relative URLs are OK
+        }
+      }
 
       // Add security attributes to links
       if (tagName === 'a') {

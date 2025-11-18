@@ -16,7 +16,8 @@ export class KaiAPIClient {
       model = null,
       temperature = 0.7,
       maxTokens = null,
-      stream = false
+      stream = false,
+      timeout = 60000 // 60 second timeout
     } = options;
 
     const payload = {
@@ -30,20 +31,61 @@ export class KaiAPIClient {
       payload.max_tokens = maxTokens;
     }
 
-    const response = await fetch(`${this.baseURL}/v1/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(payload)
-    });
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeout);
 
-    if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`API error: ${response.status} - ${error}`);
+    try {
+      const response = await fetch(`${this.baseURL}/v1/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload),
+        signal: controller.signal
+      });
+
+      if (!response.ok) {
+        let errorMessage = `HTTP ${response.status}`;
+        
+        try {
+          const errorText = await response.text();
+          // Try to parse as JSON for better error messages
+          try {
+            const errorJson = JSON.parse(errorText);
+            errorMessage = errorJson.error?.message || errorJson.message || errorText;
+          } catch {
+            errorMessage = errorText || errorMessage;
+          }
+        } catch {
+          // Ignore error reading response body
+        }
+        
+        throw new Error(`API request failed: ${errorMessage}`);
+      }
+
+      const data = await response.json();
+      
+      // Validate response structure
+      if (!data.choices || !Array.isArray(data.choices) || data.choices.length === 0) {
+        throw new Error('Invalid API response: missing choices');
+      }
+      
+      if (!data.choices[0].message || typeof data.choices[0].message.content !== 'string') {
+        throw new Error('Invalid API response: missing message content');
+      }
+
+      return data;
+    } catch (error) {
+      if (error.name === 'AbortError') {
+        throw new Error('Request timed out. Please try again.');
+      }
+      if (error.name === 'TypeError' && error.message.includes('fetch')) {
+        throw new Error('Network error. Check your connection and API endpoint.');
+      }
+      throw error;
+    } finally {
+      clearTimeout(timeoutId);
     }
-
-    return await response.json();
   }
 
   /**
@@ -53,7 +95,8 @@ export class KaiAPIClient {
     const {
       model = null,
       temperature = 0.7,
-      maxTokens = null
+      maxTokens = null,
+      timeout = 30000 // 30 second timeout
     } = options;
 
     const payload = {
@@ -67,62 +110,91 @@ export class KaiAPIClient {
       payload.max_tokens = maxTokens;
     }
 
-    const response = await fetch(`${this.baseURL}/v1/chat/completions`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(payload),
-      signal: options.signal // For AbortController
-    });
-
-    if (!response.ok) {
-      const error = await response.text();
-      throw new Error(`API error: ${response.status} - ${error}`);
-    }
-
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-    let buffer = '';
+    // Create AbortController for timeout if not provided
+    const controller = options.signal ? null : new AbortController();
+    const signal = options.signal || controller.signal;
+    
+    // Set timeout
+    const timeoutId = setTimeout(() => {
+      if (controller) controller.abort();
+    }, timeout);
 
     try {
-      while (true) {
-        const { done, value } = await reader.read();
-        
-        if (done) break;
+      const response = await fetch(`${this.baseURL}/v1/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(payload),
+        signal
+      });
 
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split('\n');
-        
-        // Keep the last incomplete line in buffer
-        buffer = lines.pop() || '';
+      if (!response.ok) {
+        const error = await response.text();
+        throw new Error(`API error: ${response.status} - ${error}`);
+      }
 
-        for (const line of lines) {
-          const trimmed = line.trim();
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = '';
+      let lastChunkTime = Date.now();
+      const CHUNK_TIMEOUT = 10000; // 10s max between chunks
+
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
           
-          if (!trimmed || !trimmed.startsWith('data: ')) {
-            continue;
-          }
+          if (done) break;
 
-          const data = trimmed.substring(6); // Remove 'data: ' prefix
+          lastChunkTime = Date.now();
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          
+          // Keep the last incomplete line in buffer
+          buffer = lines.pop() || '';
 
-          if (data === '[DONE]') {
-            return;
-          }
-
-          try {
-            const parsed = JSON.parse(data);
+          for (const line of lines) {
+            const trimmed = line.trim();
             
-            if (parsed.choices && parsed.choices[0].delta) {
-              yield parsed.choices[0].delta;
+            if (!trimmed || !trimmed.startsWith('data: ')) {
+              continue;
             }
-          } catch (e) {
-            console.warn('Failed to parse SSE data:', data, e);
+
+            const data = trimmed.substring(6); // Remove 'data: ' prefix
+
+            if (data === '[DONE]') {
+              return;
+            }
+
+            try {
+              const parsed = JSON.parse(data);
+              
+              if (parsed.choices && parsed.choices[0] && parsed.choices[0].delta) {
+                yield parsed.choices[0].delta;
+              }
+            } catch (e) {
+              // Only warn if the data looks like it should be JSON
+              if (data.startsWith('{')) {
+                console.warn('Failed to parse SSE data:', data, e);
+              }
+            }
+          }
+          
+          // Check for chunk timeout
+          if (Date.now() - lastChunkTime > CHUNK_TIMEOUT) {
+            throw new Error('Stream timeout: no data received for 10 seconds');
           }
         }
+      } finally {
+        reader.releaseLock();
       }
+    } catch (error) {
+      if (error.name === 'AbortError') {
+        throw new Error('Request timed out after 30 seconds');
+      }
+      throw error;
     } finally {
-      reader.releaseLock();
+      clearTimeout(timeoutId);
     }
   }
 

@@ -59,16 +59,53 @@ class Storage {
   }
 
   /**
+   * Ensure database is initialized
+   */
+  _ensureDB() {
+    if (!this.db) {
+      throw new Error('Database not initialized. Call init() first.');
+    }
+  }
+
+  /**
+   * Check storage quota
+   */
+  async checkQuota() {
+    if ('storage' in navigator && 'estimate' in navigator.storage) {
+      try {
+        const estimate = await navigator.storage.estimate();
+        const usagePercent = (estimate.usage / estimate.quota) * 100;
+        return {
+          usage: estimate.usage,
+          quota: estimate.quota,
+          percentUsed: usagePercent,
+          available: estimate.quota - estimate.usage
+        };
+      } catch (error) {
+        console.warn('Failed to check storage quota:', error);
+        return null;
+      }
+    }
+    return null;
+  }
+
+  /**
    * Generic get operation
    */
   async get(storeName, key) {
+    this._ensureDB();
+    
     return new Promise((resolve, reject) => {
-      const transaction = this.db.transaction(storeName, 'readonly');
-      const store = transaction.objectStore(storeName);
-      const request = store.get(key);
+      try {
+        const transaction = this.db.transaction(storeName, 'readonly');
+        const store = transaction.objectStore(storeName);
+        const request = store.get(key);
 
-      request.onerror = () => reject(request.error);
-      request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(new Error(`Failed to get ${storeName}/${key}: ${request.error}`));
+        request.onsuccess = () => resolve(request.result);
+      } catch (error) {
+        reject(new Error(`Transaction failed for ${storeName}: ${error.message}`));
+      }
     });
   }
 
@@ -76,13 +113,30 @@ class Storage {
    * Generic put operation (add or update)
    */
   async put(storeName, value) {
+    this._ensureDB();
+    
+    // Check quota before large writes
+    const quota = await this.checkQuota();
+    if (quota && quota.percentUsed > 90) {
+      console.warn(`Storage quota ${quota.percentUsed.toFixed(1)}% full`);
+      if (quota.percentUsed > 95) {
+        throw new Error('Storage quota exceeded. Please delete old conversations.');
+      }
+    }
+    
     return new Promise((resolve, reject) => {
-      const transaction = this.db.transaction(storeName, 'readwrite');
-      const store = transaction.objectStore(storeName);
-      const request = store.put(value);
+      try {
+        const transaction = this.db.transaction(storeName, 'readwrite');
+        const store = transaction.objectStore(storeName);
+        const request = store.put(value);
 
-      request.onerror = () => reject(request.error);
-      request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(new Error(`Failed to save to ${storeName}: ${request.error}`));
+        request.onsuccess = () => resolve(request.result);
+        
+        transaction.onerror = () => reject(new Error(`Transaction failed: ${transaction.error}`));
+      } catch (error) {
+        reject(new Error(`Failed to save to ${storeName}: ${error.message}`));
+      }
     });
   }
 
@@ -90,13 +144,19 @@ class Storage {
    * Generic delete operation
    */
   async delete(storeName, key) {
+    this._ensureDB();
+    
     return new Promise((resolve, reject) => {
-      const transaction = this.db.transaction(storeName, 'readwrite');
-      const store = transaction.objectStore(storeName);
-      const request = store.delete(key);
+      try {
+        const transaction = this.db.transaction(storeName, 'readwrite');
+        const store = transaction.objectStore(storeName);
+        const request = store.delete(key);
 
-      request.onerror = () => reject(request.error);
-      request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(new Error(`Failed to delete from ${storeName}: ${request.error}`));
+        request.onsuccess = () => resolve(request.result);
+      } catch (error) {
+        reject(new Error(`Delete failed for ${storeName}: ${error.message}`));
+      }
     });
   }
 
@@ -104,14 +164,20 @@ class Storage {
    * Get all items from store
    */
   async getAll(storeName, indexName = null, query = null) {
+    this._ensureDB();
+    
     return new Promise((resolve, reject) => {
-      const transaction = this.db.transaction(storeName, 'readonly');
-      const store = transaction.objectStore(storeName);
-      const source = indexName ? store.index(indexName) : store;
-      const request = query ? source.getAll(query) : source.getAll();
+      try {
+        const transaction = this.db.transaction(storeName, 'readonly');
+        const store = transaction.objectStore(storeName);
+        const source = indexName ? store.index(indexName) : store;
+        const request = query ? source.getAll(query) : source.getAll();
 
-      request.onerror = () => reject(request.error);
-      request.onsuccess = () => resolve(request.result);
+        request.onerror = () => reject(new Error(`Failed to get all from ${storeName}: ${request.error}`));
+        request.onsuccess = () => resolve(request.result || []);
+      } catch (error) {
+        reject(new Error(`Query failed for ${storeName}: ${error.message}`));
+      }
     });
   }
 
