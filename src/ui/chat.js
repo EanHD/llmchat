@@ -310,7 +310,9 @@ export class ChatUI {
       });
 
       for await (const delta of stream) {
+        console.log('[ChatUI] Received delta:', delta);
         if (delta.content) {
+          console.log('[ChatUI] Delta content:', delta.content);
           assistantMessage.appendContent(delta.content);
           
           const now = Date.now();
