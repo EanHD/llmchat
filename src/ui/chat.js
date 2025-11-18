@@ -109,6 +109,53 @@ export class ChatUI {
         }
       });
     }
+    
+    // Track user scroll
+    this.chatContainer.addEventListener('scroll', () => {
+      this.handleScroll();
+    });
+  }
+  
+  /**
+   * Create scroll to bottom button
+   */
+  createScrollToBottomButton() {
+    this.scrollToBottomBtn = document.createElement('button');
+    this.scrollToBottomBtn.className = 'scroll-to-bottom-btn';
+    this.scrollToBottomBtn.setAttribute('aria-label', 'Scroll to bottom');
+    this.scrollToBottomBtn.innerHTML = '<svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M7 13l5 5 5-5M7 6l5 5 5-5"/></svg>';
+    this.scrollToBottomBtn.style.display = 'none';
+    
+    this.scrollToBottomBtn.addEventListener('click', () => {
+      this.scrollToBottom(true);
+    });
+    
+    this.chatContainer.appendChild(this.scrollToBottomBtn);
+  }
+  
+  /**
+   * Handle scroll event
+   */
+  handleScroll() {
+    const container = this.chatContainer;
+    const threshold = 100; // pixels from bottom
+    const isNearBottom = container.scrollHeight - container.scrollTop - container.clientHeight < threshold;
+    
+    this.userScrolledUp = !isNearBottom;
+    
+    // Show/hide scroll to bottom button
+    if (this.scrollToBottomBtn) {
+      this.scrollToBottomBtn.style.display = this.userScrolledUp ? 'flex' : 'none';
+    }
+  }
+  
+  /**
+   * Check if user is at bottom
+   */
+  isAtBottom() {
+    const container = this.chatContainer;
+    const threshold = 50;
+    return container.scrollHeight - container.scrollTop - container.clientHeight < threshold;
   }
 
   /**
