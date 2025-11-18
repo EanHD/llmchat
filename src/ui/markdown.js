@@ -1,6 +1,7 @@
 /**
  * Markdown Renderer
  * Converts markdown to HTML with syntax highlighting
+ * Version: 1.0.1
  */
 
 import { marked } from 'https://cdn.jsdelivr.net/npm/marked@11.0.0/+esm';
