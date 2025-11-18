@@ -263,7 +263,7 @@ export class ChatUI {
    */
   async fetchResponse(assistantMessage, apiMessages, settings) {
     const response = await this.apiClient.sendMessage(apiMessages, {
-      model: settings.model,
+      model: settings.model || 'granite-local',
       temperature: settings.temperature,
       maxTokens: settings.maxTokens
     });
@@ -303,7 +303,7 @@ export class ChatUI {
 
     try {
       const stream = this.apiClient.streamMessage(apiMessages, {
-        model: settings.model,
+        model: settings.model || 'granite-local',
         temperature: settings.temperature,
         maxTokens: settings.maxTokens,
         signal: this.abortController.signal
