@@ -168,8 +168,10 @@ export class KaiAPIClient {
 
             try {
               const parsed = JSON.parse(data);
+              console.log('[API] Parsed SSE chunk:', parsed);
               
               if (parsed.choices && parsed.choices[0] && parsed.choices[0].delta) {
+                console.log('[API] Yielding delta:', parsed.choices[0].delta);
                 yield parsed.choices[0].delta;
               }
             } catch (e) {
