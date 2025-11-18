@@ -157,17 +157,22 @@ export class KaiAPIClient {
           buffer += decoder.decode(value, { stream: true });
           const lines = buffer.split('\n');
           
+          console.log('[API] Buffer now has', lines.length, 'lines');
+          
           // Keep the last incomplete line in buffer
           buffer = lines.pop() || '';
 
           for (const line of lines) {
             const trimmed = line.trim();
+            console.log('[API] Processing line:', trimmed.substring(0, 100));
             
             if (!trimmed || !trimmed.startsWith('data: ')) {
+              console.log('[API] Skipping line (empty or not data:)');
               continue;
             }
 
             const data = trimmed.substring(6); // Remove 'data: ' prefix
+            console.log('[API] Extracted data:', data.substring(0, 100));
 
             if (data === '[DONE]') {
               return;
