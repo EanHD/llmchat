@@ -188,13 +188,13 @@
 
 **Applies to**: All user stories with message display (US1, US2, US3, US5, US6)
 
-- [ ] T068 [P] Create markdown renderer in src/ui/markdown.js using marked.js library
-- [ ] T069 [P] Add highlight.js for code syntax highlighting in src/ui/markdown.js
-- [ ] T070 Configure marked.js options: enable GFM, sanitize HTML, set code block handler
-- [ ] T071 Integrate markdown rendering into message display in src/ui/chat.js
-- [ ] T072 [P] Add copy button to code blocks in src/ui/markdown.js
-- [ ] T073 [P] Style code blocks and inline code in public/assets/styles.css
-- [ ] T074 Test markdown rendering with various formats (headers, lists, links, code, tables)
+- [X] T068 [P] Create markdown renderer in src/ui/markdown.js using marked.js library
+- [X] T069 [P] Add highlight.js for code syntax highlighting in src/ui/markdown.js
+- [X] T070 Configure marked.js options: enable GFM, sanitize HTML, set code block handler
+- [X] T071 Integrate markdown rendering into message display in src/ui/chat.js
+- [X] T072 [P] Add copy button to code blocks in src/ui/markdown.js
+- [X] T073 [P] Style code blocks and inline code in public/assets/styles.css
+- [X] T074 Test markdown rendering with various formats (headers, lists, links, code, tables)
 
 **Checkpoint**: ✓ Markdown and code rendering working across all messages
 

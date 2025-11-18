@@ -9,6 +9,7 @@ import { KaiAPIClient } from '../core/api.js';
 import { Message, MessageStatus, MessageRole } from '../models/message.js';
 import { Conversation } from '../models/conversation.js';
 import { createMessageBubble, createEmptyState, createSpinner } from './components.js';
+import { markdownRenderer } from './markdown.js';
 import { $, clearElement } from '../utils/dom.js';
 import { generateTitle } from '../utils/format.js';
 
@@ -259,12 +260,12 @@ export class ChatUI {
   /**
    * Render messages
    */
-  renderMessages(messages) {
+  async renderMessages(messages) {
     // During streaming, update message content in place instead of full re-render
     if (state.getState('isStreaming')) {
       const lastMessage = messages[messages.length - 1];
       if (lastMessage) {
-        this.updateMessageContent(lastMessage.id, lastMessage.content);
+        await this.updateMessageContent(lastMessage.id, lastMessage.content);
         return;
       }
     }
@@ -276,10 +277,23 @@ export class ChatUI {
       return;
     }
 
-    messages.forEach(message => {
+    const settings = await storage.getAllSettings();
+    const markdownEnabled = settings.markdown !== false;
+
+    for (const message of messages) {
       const messageBubble = createMessageBubble(message);
+      
+      // Render markdown if enabled
+      if (markdownEnabled && message.role === 'assistant' && message.content) {
+        const contentEl = messageBubble.querySelector('.message-content');
+        if (contentEl) {
+          contentEl.innerHTML = markdownRenderer.render(message.content);
+          markdownRenderer.setupCopyButtons(contentEl);
+        }
+      }
+      
       this.messagesContainer.appendChild(messageBubble);
-    });
+    }
 
     this.scrollToBottom();
   }
@@ -287,13 +301,21 @@ export class ChatUI {
   /**
    * Update message in place (for streaming)
    */
-  updateMessageContent(messageId, content) {
+  async updateMessageContent(messageId, content) {
     const messageEl = this.messagesContainer.querySelector(`[data-message-id="${messageId}"]`);
-    if (messageEl) {
-      const contentEl = messageEl.querySelector('.message-content');
-      if (contentEl) {
-        contentEl.textContent = content || '';
-      }
+    if (!messageEl) return;
+
+    const contentEl = messageEl.querySelector('.message-content');
+    if (!contentEl) return;
+
+    const settings = await storage.getAllSettings();
+    const markdownEnabled = settings.markdown !== false;
+
+    if (markdownEnabled) {
+      contentEl.innerHTML = markdownRenderer.render(content || '');
+      markdownRenderer.setupCopyButtons(contentEl);
+    } else {
+      contentEl.textContent = content || '';
     }
   }
 
