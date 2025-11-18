@@ -54,19 +54,29 @@ export class ChatUI {
    * Set up event listeners
    */
   setupEventListeners() {
+    console.log('[ChatUI] setupEventListeners called');
+    console.log('[ChatUI] messageForm:', this.messageForm);
+    console.log('[ChatUI] messageInput:', this.messageInput);
+    
     // Form submission / stop streaming
     if (!this.messageForm) {
       console.error('Message form not found - event listeners cannot be attached');
       return;
     }
     
+    console.log('[ChatUI] Attaching form submit listener');
+    
     this.messageForm.addEventListener('submit', (e) => {
+      console.log('[ChatUI] Form submit event fired');
       e.preventDefault();
+      console.log('[ChatUI] Default prevented');
       
       // If currently streaming, stop it
       if (state.getState('isStreaming')) {
+        console.log('[ChatUI] Currently streaming, stopping');
         this.stopStreaming();
       } else {
+        console.log('[ChatUI] Calling handleSendMessage');
         this.handleSendMessage();
       }
     });
@@ -120,14 +130,19 @@ export class ChatUI {
    * Handle send message
    */
   async handleSendMessage() {
+    console.log('[ChatUI] handleSendMessage called');
     const content = this.messageInput.value.trim();
+    console.log('[ChatUI] Message content:', content);
+    console.log('[ChatUI] isSubmitting:', this.isSubmitting);
     
     if (!content || this.isSubmitting) {
+      console.log('[ChatUI] Returning early - no content or already submitting');
       return;
     }
 
     this.isSubmitting = true;
     this.updateSendButton(true);
+    console.log('[ChatUI] Starting message send process');
 
     try {
       // Get or create conversation
