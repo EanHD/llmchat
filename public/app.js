@@ -25,7 +25,6 @@ class App {
     try {
       // Initialize IndexedDB
       await storage.init();
-      console.log('Storage initialized');
 
       // Initialize default settings if not exists
       await this.initializeSettings();
@@ -44,7 +43,8 @@ class App {
       // Apply theme
       await this.applyTheme();
 
-      console.log('App initialized successfully');
+      // Show app
+      document.getElementById('app').style.display = 'flex';
     } catch (error) {
       console.error('Failed to initialize app:', error);
       this.showFatalError(error);

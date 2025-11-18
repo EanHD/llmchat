@@ -240,8 +240,6 @@ export class SettingsUI {
     // Update state
     const settings = await storage.getAllSettings();
     state.setSettings(settings);
-
-    console.log(`Setting saved: ${key} =`, value);
   }
 
   /**

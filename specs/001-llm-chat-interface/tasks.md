@@ -290,18 +290,18 @@
 
 **Purpose**: Final improvements for production readiness
 
-- [ ] T121 [P] Optimize bundle size: verify marked.js + highlight.js < 20KB gzipped
+- [X] T121 [P] Optimize bundle size: verify marked.js + highlight.js < 20KB gzipped
 - [ ] T122 [P] Add loading skeleton UI for initial conversation load
 - [ ] T123 Implement virtual scrolling for conversations with 100+ messages
 - [ ] T124 [P] Add debouncing to conversation search/filter (if added)
-- [ ] T125 [P] Optimize Service Worker caching: version static assets, clear old caches
+- [X] T125 [P] Optimize Service Worker caching: version static assets, clear old caches
 - [ ] T126 Add performance monitoring: measure First Contentful Paint, Time to Interactive
 - [ ] T127 Verify performance goals met: FCP <1s, streaming start <2s, conversation switch <500ms
 - [X] T128 [P] Add meta tags for SEO: description, keywords, Open Graph
 - [X] T129 [P] Add favicon and Apple touch icon
-- [ ] T130 Code cleanup: remove console.logs, dead code, unused variables
+- [X] T130 Code cleanup: remove console.logs, dead code, unused variables
 - [ ] T131 [P] Run linter and fix all warnings
-- [ ] T132 Security review: check for XSS vulnerabilities, CSP headers, sanitization
+- [X] T132 Security review: check for XSS vulnerabilities, CSP headers, sanitization
 - [ ] T133 Accessibility audit with Lighthouse: target 90+ score
 - [ ] T134 Final manual testing: run through all user stories end-to-end
 
