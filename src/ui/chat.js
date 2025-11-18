@@ -248,8 +248,7 @@ export class ChatUI {
       
       state.addMessage(assistantMessage.toJSON());
 
-      // Scroll to bottom
-      this.scrollToBottom();
+      // Don't scroll here - will scroll after render
 
       // Get conversation history from STATE (not storage) to avoid race conditions
       const stateMessages = state.getState('messages');
@@ -504,7 +503,8 @@ export class ChatUI {
       this.messagesContainer.appendChild(messageBubble);
     }
 
-    this.scrollToBottom();
+    // Force scroll to bottom after rendering (user just sent a message)
+    this.scrollToBottom(true);
   }
 
   /**
