@@ -6,12 +6,14 @@ import { storage } from './src/core/storage.js';
 import { state } from './src/core/state.js';
 import { ChatUI } from './src/ui/chat.js';
 import { SidebarUI } from './src/ui/sidebar.js';
+import { SettingsUI } from './src/ui/settings.js';
 import { DEFAULT_SETTINGS } from './src/models/settings.js';
 
 class App {
   constructor() {
     this.chatUI = null;
     this.sidebarUI = null;
+    this.settingsUI = null;
   }
 
   /**
@@ -29,6 +31,7 @@ class App {
       // Initialize UI components
       this.chatUI = new ChatUI();
       this.sidebarUI = new SidebarUI();
+      this.settingsUI = new SettingsUI();
 
       // Check for offline mode
       this.setupOfflineDetection();

@@ -206,16 +206,16 @@
 
 **Applies to**: All user stories as global configuration
 
-- [ ] T075 [P] Create settings panel UI in src/ui/settings.js with form inputs for all settings
-- [ ] T076 [P] Implement settings loading from IndexedDB on app start
-- [ ] T077 Implement settings save: validate inputs, update IndexedDB, apply changes
-- [ ] T078 [P] Add theme switcher (light/dark/auto) with CSS variable updates
-- [ ] T079 [P] Add API endpoint configuration with validation
-- [ ] T080 [P] Add model selection dropdown with available models from /v1/models
-- [ ] T081 Add toggle switches for: streaming, markdown, code highlighting, auto-scroll, send-on-enter
-- [ ] T082 Implement settings panel show/hide toggle from header
-- [ ] T083 Add settings reset to defaults button with confirmation
-- [ ] T084 Show warning when changing API endpoint (requires reload)
+- [X] T075 [P] Create settings panel UI in src/ui/settings.js with form inputs for all settings
+- [X] T076 [P] Implement settings loading from IndexedDB on app start
+- [X] T077 Implement settings save: validate inputs, update IndexedDB, apply changes
+- [X] T078 [P] Add theme switcher (light/dark/auto) with CSS variable updates
+- [X] T079 [P] Add API endpoint configuration with validation
+- [X] T080 [P] Add model selection dropdown with available models from /v1/models
+- [X] T081 Add toggle switches for: streaming, markdown, code highlighting, auto-scroll, send-on-enter
+- [X] T082 Implement settings panel show/hide toggle from header
+- [X] T083 Add settings reset to defaults button with confirmation
+- [X] T084 Show warning when changing API endpoint (requires reload)
 
 **Checkpoint**: ✓ Settings panel complete - User can configure all preferences
 
