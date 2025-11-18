@@ -227,17 +227,17 @@
 
 **Applies to**: All user stories with network/storage operations
 
-- [ ] T085 [P] Implement error boundary in src/core/state.js for uncaught errors
-- [ ] T086 [P] Add toast/notification component in src/ui/components.js for user feedback
-- [ ] T087 Add API error handling in src/core/api.js: timeout (30s), network errors, server errors
-- [ ] T088 Display error messages to user with retry button for failed requests
-- [ ] T089 Add offline detection with navigator.onLine in src/core/state.js
-- [ ] T090 Show offline banner when network unavailable
-- [ ] T091 Disable send button when offline, allow viewing existing conversations
-- [ ] T092 Implement exponential backoff retry (2s, 4s, 8s) for failed API requests
-- [ ] T093 Handle IndexedDB quota exceeded: show warning at 80%, offer export/delete
-- [ ] T094 Add storage error handling: fallback to LocalStorage if IndexedDB fails
-- [ ] T095 Test Service Worker offline caching: verify app loads without network
+- [X] T085 [P] Implement error boundary in src/core/state.js for uncaught errors
+- [X] T086 [P] Add toast/notification component in src/ui/components.js for user feedback
+- [X] T087 Add API error handling in src/core/api.js: timeout (30s), network errors, server errors
+- [X] T088 Display error messages to user with retry button for failed requests
+- [X] T089 Add offline detection with navigator.onLine in src/core/state.js
+- [X] T090 Show offline banner when network unavailable
+- [X] T091 Disable send button when offline, allow viewing existing conversations
+- [X] T092 Implement exponential backoff retry (2s, 4s, 8s) for failed API requests
+- [X] T093 Handle IndexedDB quota exceeded: show warning at 80%, offer export/delete
+- [X] T094 Add storage error handling: fallback to LocalStorage if IndexedDB fails
+- [X] T095 Test Service Worker offline caching: verify app loads without network
 
 **Checkpoint**: ✓ Error handling and offline support complete
 

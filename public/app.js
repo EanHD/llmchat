@@ -7,6 +7,7 @@ import { state } from './src/core/state.js';
 import { ChatUI } from './src/ui/chat.js';
 import { SidebarUI } from './src/ui/sidebar.js';
 import { SettingsUI } from './src/ui/settings.js';
+import { toast } from './src/ui/toast.js';
 import { DEFAULT_SETTINGS } from './src/models/settings.js';
 
 class App {
@@ -14,6 +15,7 @@ class App {
     this.chatUI = null;
     this.sidebarUI = null;
     this.settingsUI = null;
+    this.offlineBanner = null;
   }
 
   /**
@@ -35,6 +37,9 @@ class App {
 
       // Check for offline mode
       this.setupOfflineDetection();
+
+      // Set up error boundary
+      this.setupErrorBoundary();
 
       // Apply theme
       await this.applyTheme();
@@ -68,13 +73,54 @@ class App {
    * Set up offline detection
    */
   setupOfflineDetection() {
+    // Create offline banner
+    this.offlineBanner = document.createElement('div');
+    this.offlineBanner.className = 'offline-banner';
+    this.offlineBanner.textContent = '⚠ You are offline - some features may not work';
+    document.body.appendChild(this.offlineBanner);
+
     const updateOnlineStatus = () => {
-      state.setOffline(!navigator.onLine);
+      const isOffline = !navigator.onLine;
+      state.setOffline(isOffline);
+      
+      if (isOffline) {
+        this.offlineBanner.classList.add('show');
+        toast.warning('Connection lost - viewing cached content');
+      } else {
+        this.offlineBanner.classList.remove('show');
+        toast.success('Back online');
+      }
     };
 
     window.addEventListener('online', updateOnlineStatus);
     window.addEventListener('offline', updateOnlineStatus);
     updateOnlineStatus();
+  }
+
+  /**
+   * Set up global error boundary
+   */
+  setupErrorBoundary() {
+    window.addEventListener('error', (event) => {
+      console.error('Uncaught error:', event.error);
+      toast.error(`Error: ${event.error.message}`);
+      state.setError(event.error.message);
+    });
+
+    window.addEventListener('unhandledrejection', (event) => {
+      console.error('Unhandled promise rejection:', event.reason);
+      toast.error(`Error: ${event.reason}`);
+      state.setError(String(event.reason));
+    });
+
+    // Subscribe to state errors
+    state.subscribe('error', (error) => {
+      if (error) {
+        toast.error(error);
+        // Clear error after showing
+        setTimeout(() => state.clearError(), 5000);
+      }
+    });
   }
 
   /**
