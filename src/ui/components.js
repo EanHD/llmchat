@@ -71,6 +71,17 @@ export function createMessageBubble(message) {
     dataset: { messageId: message.id }
   }, messageContent);
 
+  // Add TTS button for assistant messages
+  if (role === 'assistant' && content) {
+    const ttsBtn = createElement('button', {
+      className: 'tts-btn',
+      'aria-label': 'Read aloud',
+      title: 'Read aloud'
+    });
+    ttsBtn.innerHTML = '<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>';
+    messageContent.appendChild(ttsBtn);
+  }
+
   return messageEl;
 }
 

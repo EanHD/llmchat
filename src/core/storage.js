@@ -295,6 +295,34 @@ class Storage {
       return acc;
     }, {});
   }
+
+  /**
+   * Memory operations
+   */
+  async getMemories() {
+    // For now, return empty array as memories would be fetched from Kai API
+    // In a full implementation, this would call the Kai API to get memories
+    try {
+      const memories = await this.getSetting('localMemories');
+      return memories || [];
+    } catch (error) {
+      console.error('Failed to get memories:', error);
+      return [];
+    }
+  }
+
+  async saveMemory(memory) {
+    try {
+      const memories = await this.getMemories();
+      memories.unshift(memory);
+      // Keep only last 50 memories
+      const trimmedMemories = memories.slice(0, 50);
+      await this.saveSetting('localMemories', trimmedMemories);
+    } catch (error) {
+      console.error('Failed to save memory:', error);
+      throw error;
+    }
+  }
 }
 
 // Export singleton instance

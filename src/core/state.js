@@ -154,6 +154,16 @@ class StateManager {
   clearError() {
     this.setState({ error: null });
   }
+
+  /**
+   * Show toast notification
+   */
+  showToast(message, type = 'info') {
+    // Import dynamically to avoid circular dependency
+    import('../ui/toast.js').then(module => {
+      module.toast[type](message);
+    });
+  }
 }
 
 // Export singleton instance

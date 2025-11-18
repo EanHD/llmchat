@@ -10,6 +10,8 @@ import { Message, MessageStatus, MessageRole } from '../models/message.js';
 import { Conversation } from '../models/conversation.js';
 import { createMessageBubble, createEmptyState, createSpinner } from './components.js';
 import { markdownRenderer } from './markdown.js';
+import { TextToSpeech } from './tts.js';
+import { VoiceRecorder } from './voice.js';
 import { $, clearElement } from '../utils/dom.js';
 import { generateTitle } from '../utils/format.js';
 
@@ -27,6 +29,13 @@ export class ChatUI {
     this.abortController = null; // For canceling streaming requests
     this.scrollToBottomBtn = null; // Scroll to bottom button
     this.userScrolledUp = false; // Track if user has scrolled up
+    
+    // TTS and Voice
+    this.tts = new TextToSpeech();
+    this.voiceRecorder = new VoiceRecorder((transcription) => {
+      // Auto-focus on input after transcription
+      this.messageInput.focus();
+    });
 
     this.init();
   }
@@ -497,6 +506,27 @@ export class ChatUI {
         if (contentEl) {
           contentEl.innerHTML = markdownRenderer.render(message.content);
           markdownRenderer.setupCopyButtons(contentEl);
+          
+          // Re-add TTS button after markdown render
+          const ttsBtn = document.createElement('button');
+          ttsBtn.className = 'tts-btn';
+          ttsBtn.setAttribute('aria-label', 'Read aloud');
+          ttsBtn.setAttribute('title', 'Read aloud');
+          ttsBtn.innerHTML = '<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>';
+          
+          ttsBtn.addEventListener('click', () => {
+            this.tts.toggle(message.content, message.id);
+          });
+          
+          contentEl.appendChild(ttsBtn);
+        }
+      } else if (message.role === 'assistant') {
+        // Setup TTS for non-markdown
+        const ttsBtn = messageBubble.querySelector('.tts-btn');
+        if (ttsBtn && message.content) {
+          ttsBtn.addEventListener('click', () => {
+            this.tts.toggle(message.content, message.id);
+          });
         }
       }
       
@@ -523,6 +553,22 @@ export class ChatUI {
     if (markdownEnabled) {
       contentEl.innerHTML = markdownRenderer.render(content || '');
       markdownRenderer.setupCopyButtons(contentEl);
+      
+      // Re-add TTS button after markdown render
+      let ttsBtn = contentEl.querySelector('.tts-btn');
+      if (!ttsBtn) {
+        ttsBtn = document.createElement('button');
+        ttsBtn.className = 'tts-btn';
+        ttsBtn.setAttribute('aria-label', 'Read aloud');
+        ttsBtn.setAttribute('title', 'Read aloud');
+        ttsBtn.innerHTML = '<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>';
+        
+        ttsBtn.addEventListener('click', () => {
+          this.tts.toggle(content, messageId);
+        });
+        
+        contentEl.appendChild(ttsBtn);
+      }
     } else {
       contentEl.textContent = content || '';
     }

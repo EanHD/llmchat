@@ -13,7 +13,8 @@ export const DEFAULT_SETTINGS = {
   autoScroll: true,
   sendOnEnter: true,
   temperature: 0.7,
-  maxTokens: null // Use model default
+  maxTokens: null, // Use model default
+  customMemory: '' // Custom instructions/memory
 };
 
 export class Settings {

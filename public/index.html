@@ -43,6 +43,12 @@
         <!-- Conversation items will be rendered here -->
       </div>
       <div class="sidebar-footer">
+        <button id="memory-btn" class="icon" aria-label="Memory">
+          <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+            <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+          </svg>
+        </button>
         <button id="settings-btn" class="icon" aria-label="Settings">
           <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="10" cy="10" r="3"/>
@@ -71,6 +77,18 @@
 
       <div id="input-area" class="input-area">
         <form id="message-form" class="message-form">
+          <button type="button" id="voice-btn" class="voice-btn" aria-label="Voice input">
+            <svg id="mic-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+              <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+              <line x1="12" y1="19" x2="12" y2="23"/>
+              <line x1="8" y1="23" x2="16" y2="23"/>
+            </svg>
+            <svg id="pause-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: none;">
+              <rect x="6" y="4" width="4" height="16"/>
+              <rect x="14" y="4" width="4" height="16"/>
+            </svg>
+          </button>
           <textarea 
             id="message-input" 
             class="message-input" 
@@ -78,11 +96,11 @@
             rows="1"
             aria-label="Message input"
           ></textarea>
-          <button type="submit" id="send-btn" class="icon primary" aria-label="Send message">
-            <svg id="send-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <button type="submit" id="send-btn" class="send-btn" aria-label="Send message">
+            <svg id="send-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
             </svg>
-            <svg id="stop-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="display: none;">
+            <svg id="stop-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="display: none;">
               <rect x="6" y="6" width="12" height="12" rx="1"/>
             </svg>
           </button>
@@ -102,6 +120,33 @@
       </div>
       <div class="settings-content">
         <!-- Settings form will be rendered here -->
+      </div>
+    </div>
+
+    <!-- Memory Panel (Hidden by default) -->
+    <div id="memory-panel" class="settings-panel hidden">
+      <div class="settings-header">
+        <h2>Memory</h2>
+        <button id="close-memory-btn" class="icon" aria-label="Close memory">
+          <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 6L6 18M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
+      <div class="settings-content">
+        <div class="memory-section">
+          <h3>Custom Instructions</h3>
+          <p class="memory-description">Add custom instructions that will be included in every conversation to personalize responses.</p>
+          <textarea id="custom-memory-input" class="memory-textarea" placeholder="e.g., 'I prefer concise responses', 'Always explain like I'm 5', etc." rows="6"></textarea>
+          <button id="save-memory-btn" class="primary">Save Memory</button>
+        </div>
+        <div class="memory-section">
+          <h3>Auto-Generated Memories</h3>
+          <p class="memory-description">The AI automatically learns from your conversations and builds context over time.</p>
+          <div id="auto-memories-list" class="auto-memories-list">
+            <!-- Auto memories will be rendered here -->
+          </div>
+        </div>
       </div>
     </div>
   </div>

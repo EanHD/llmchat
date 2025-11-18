@@ -7,6 +7,7 @@ import { state } from './src/core/state.js';
 import { ChatUI } from './src/ui/chat.js';
 import { SidebarUI } from './src/ui/sidebar.js';
 import { SettingsUI } from './src/ui/settings.js';
+import { MemoryUI } from './src/ui/memory.js';
 import { toast } from './src/ui/toast.js';
 import { DEFAULT_SETTINGS } from './src/models/settings.js';
 
@@ -15,6 +16,7 @@ class App {
     this.chatUI = null;
     this.sidebarUI = null;
     this.settingsUI = null;
+    this.memoryUI = null;
     this.offlineBanner = null;
   }
 
@@ -36,6 +38,7 @@ class App {
       this.chatUI = new ChatUI();
       this.sidebarUI = new SidebarUI();
       this.settingsUI = new SettingsUI();
+      this.memoryUI = new MemoryUI();
 
       // Check for offline mode
       this.setupOfflineDetection();
