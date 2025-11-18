@@ -171,7 +171,13 @@ export class KaiAPIClient {
               continue;
             }
 
-            const data = trimmed.substring(6); // Remove 'data: ' prefix
+            let data = trimmed.substring(6); // Remove 'data: ' prefix
+            
+            // Handle double 'data:' prefix (some servers send 'data: data: {...}')
+            if (data.startsWith('data: ')) {
+              data = data.substring(6);
+            }
+            
             console.log('[API] Extracted data:', data.substring(0, 100));
 
             if (data === '[DONE]') {
