@@ -12,6 +12,7 @@ export class Conversation {
     this.messageCount = data.messageCount || 0;
     this.model = data.model || null;
     this.archived = data.archived || false;
+    this.starred = data.starred || false;
   }
 
   /**
@@ -48,6 +49,10 @@ export class Conversation {
       errors.push('Invalid archived flag');
     }
 
+    if (typeof data.starred !== 'boolean') {
+      errors.push('Invalid starred flag');
+    }
+
     return {
       valid: errors.length === 0,
       errors
@@ -70,6 +75,9 @@ export class Conversation {
     if (updates.archived !== undefined) {
       this.archived = updates.archived;
     }
+    if (updates.starred !== undefined) {
+      this.starred = updates.starred;
+    }
     this.updatedAt = Date.now();
   }
 
@@ -84,7 +92,8 @@ export class Conversation {
       updatedAt: this.updatedAt,
       messageCount: this.messageCount,
       model: this.model,
-      archived: this.archived
+      archived: this.archived,
+      starred: this.starred
     };
   }
 

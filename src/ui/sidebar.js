@@ -125,12 +125,74 @@ export class SidebarUI {
     }
 
     const currentId = state.getState('currentConversationId');
+    
+    // Sort: starred first, then by updatedAt
+    const sorted = [...conversations].sort((a, b) => {
+      if (a.starred && !b.starred) return -1;
+      if (!a.starred && b.starred) return 1;
+      return b.updatedAt - a.updatedAt;
+    });
 
-    conversations.forEach(conversation => {
+    sorted.forEach(conversation => {
       const isActive = conversation.id === currentId;
-      const item = createConversationItem(conversation, isActive);
+      const item = createConversationItem(conversation, isActive, {
+        onRename: (id, currentTitle) => this.handleRename(id, currentTitle),
+        onDelete: (id) => this.handleDelete(id),
+        onToggleStar: (id) => this.handleToggleStar(id)
+      });
       this.conversationList.appendChild(item);
     });
+  }
+  
+  /**
+   * Handle rename conversation
+   */
+  async handleRename(conversationId, currentTitle) {
+    const newTitle = prompt('Rename conversation:', currentTitle);
+    if (newTitle && newTitle.trim() && newTitle !== currentTitle) {
+      const conversation = await storage.getConversation(conversationId);
+      if (conversation) {
+        conversation.title = newTitle.trim();
+        conversation.updatedAt = Date.now();
+        await storage.saveConversation(conversation);
+        await this.loadConversations();
+      }
+    }
+  }
+  
+  /**
+   * Handle delete conversation
+   */
+  async handleDelete(conversationId) {
+    if (confirm('Delete this conversation? This cannot be undone.')) {
+      await storage.deleteConversation(conversationId);
+      
+      // If deleting current conversation, switch to another or create new
+      const currentId = state.getState('currentConversationId');
+      if (currentId === conversationId) {
+        const conversations = await storage.getAllConversations();
+        if (conversations.length > 0) {
+          state.setCurrentConversation(conversations[0].id);
+        } else {
+          await this.createNewChat();
+        }
+      }
+      
+      await this.loadConversations();
+    }
+  }
+  
+  /**
+   * Handle toggle star
+   */
+  async handleToggleStar(conversationId) {
+    const conversation = await storage.getConversation(conversationId);
+    if (conversation) {
+      conversation.starred = !conversation.starred;
+      conversation.updatedAt = Date.now();
+      await storage.saveConversation(conversation);
+      await this.loadConversations();
+    }
   }
 
   /**

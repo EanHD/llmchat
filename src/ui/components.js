@@ -109,15 +109,83 @@ export function createEmptyState(title, description) {
 /**
  * Create conversation list item
  */
-export function createConversationItem(conversation, isActive = false) {
+export function createConversationItem(conversation, isActive = false, handlers = {}) {
+  const { onRename, onDelete, onToggleStar } = handlers;
+  
+  const titleContainer = createElement('div', {
+    className: 'conversation-title-container'
+  });
+  
   const title = createElement('div', {
     className: 'conversation-title'
   }, conversation.title);
-
+  
+  titleContainer.appendChild(title);
+  
+  // Star button
+  const starBtn = createElement('button', {
+    className: 'conversation-action-btn star-btn',
+    'aria-label': conversation.starred ? 'Unstar' : 'Star',
+    title: conversation.starred ? 'Unstar' : 'Star'
+  });
+  starBtn.innerHTML = conversation.starred 
+    ? '<svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>'
+    : '<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>';
+  
+  // Actions container (visible on hover)
+  const actions = createElement('div', {
+    className: 'conversation-actions'
+  });
+  
+  // Rename button
+  const renameBtn = createElement('button', {
+    className: 'conversation-action-btn',
+    'aria-label': 'Rename',
+    title: 'Rename'
+  });
+  renameBtn.innerHTML = '<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>';
+  
+  // Delete button
+  const deleteBtn = createElement('button', {
+    className: 'conversation-action-btn delete-btn',
+    'aria-label': 'Delete',
+    title: 'Delete'
+  });
+  deleteBtn.innerHTML = '<svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>';
+  
+  // Event handlers with stopPropagation to prevent conversation switch
+  if (onToggleStar) {
+    starBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      onToggleStar(conversation.id);
+    });
+  }
+  
+  if (onRename) {
+    renameBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      onRename(conversation.id, conversation.title);
+    });
+  }
+  
+  if (onDelete) {
+    deleteBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      onDelete(conversation.id);
+    });
+  }
+  
+  actions.appendChild(starBtn);
+  actions.appendChild(renameBtn);
+  actions.appendChild(deleteBtn);
+  
   const item = createElement('div', {
-    className: `conversation-item ${isActive ? 'active' : ''}`,
+    className: `conversation-item ${isActive ? 'active' : ''} ${conversation.starred ? 'starred' : ''}`,
     dataset: { conversationId: conversation.id }
-  }, title);
+  });
+  
+  item.appendChild(titleContainer);
+  item.appendChild(actions);
 
   return item;
 }
