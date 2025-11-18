@@ -3,7 +3,7 @@
  * Cache-first for static assets, network-first for API calls
  */
 
-const CACHE_VERSION = '1.0.0';
+const CACHE_VERSION = '1.0.1';
 const CACHE_NAME = `llmchat-v${CACHE_VERSION}`;
 
 // Use relative paths that work in subdirectories
@@ -15,16 +15,7 @@ const STATIC_ASSETS = [
   './app.js',
   './favicon.svg',
   './icons/icon-192.svg',
-  './icons/icon-512.svg',
-  // Also cache with absolute paths for compatibility
-  self.registration.scope,
-  self.registration.scope + 'index.html',
-  self.registration.scope + 'manifest.json',
-  self.registration.scope + 'assets/styles.css',
-  self.registration.scope + 'app.js',
-  self.registration.scope + 'favicon.svg',
-  self.registration.scope + 'icons/icon-192.svg',
-  self.registration.scope + 'icons/icon-512.svg'
+  './icons/icon-512.svg'
 ];
 
 // Install event - cache static assets
