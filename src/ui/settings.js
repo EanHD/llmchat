@@ -85,7 +85,7 @@ export class SettingsUI {
         type: 'text',
         className: 'setting-input',
         value: settings.apiEndpoint || DEFAULT_SETTINGS.apiEndpoint,
-        placeholder: 'http://eanserver:9000',
+        placeholder: 'https://eanserver:9000',
         onInput: (e) => this.saveSetting('apiEndpoint', e.target.value)
       })
     ));

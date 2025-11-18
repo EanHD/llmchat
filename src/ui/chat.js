@@ -37,7 +37,7 @@ export class ChatUI {
     
     // Get API endpoint from settings
     const settings = await storage.getAllSettings();
-    const apiEndpoint = settings.apiEndpoint || 'http://eanserver:9000';
+    const apiEndpoint = settings.apiEndpoint || 'https://eanserver:9000';
     this.apiClient = new KaiAPIClient(apiEndpoint);
 
     // Subscribe to state changes

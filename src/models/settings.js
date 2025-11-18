@@ -4,7 +4,7 @@
  */
 
 export const DEFAULT_SETTINGS = {
-  apiEndpoint: 'http://eanserver:9000',
+  apiEndpoint: 'https://eanserver:9000',
   model: null, // Auto-select from available models
   theme: 'auto', // 'light', 'dark', 'auto'
   streaming: true,

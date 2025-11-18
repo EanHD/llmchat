@@ -59,11 +59,6 @@ export function createIconButton(iconSvg, options = {}) {
 export function createMessageBubble(message) {
   const { role, content, status } = message;
   
-  const isUser = role === 'user';
-  const avatar = createElement('div', {
-    className: 'message-avatar'
-  }, isUser ? 'U' : 'AI');
-
   const messageContent = createElement('div', {
     className: 'message-content'
   });
@@ -74,7 +69,7 @@ export function createMessageBubble(message) {
   const messageEl = createElement('div', {
     className: `message ${role} ${status || ''}`,
     dataset: { messageId: message.id }
-  }, avatar, messageContent);
+  }, messageContent);
 
   return messageEl;
 }

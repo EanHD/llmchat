@@ -6,12 +6,12 @@
     "version": "1.0.0",
     "contact": {
       "name": "LLM Chat Interface",
-      "url": "http://eanserver:9000"
+      "url": "https://eanserver:9000"
     }
   },
   "servers": [
     {
-      "url": "http://eanserver:9000",
+      "url": "https://eanserver:9000",
       "description": "Kai LLM Server (local network)"
     }
   ],
