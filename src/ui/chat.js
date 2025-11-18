@@ -32,13 +32,13 @@ export class ChatUI {
    * Initialize chat UI
    */
   async init() {
+    // Set up event listeners FIRST, before any async operations
+    this.setupEventListeners();
+    
     // Get API endpoint from settings
     const settings = await storage.getAllSettings();
     const apiEndpoint = settings.apiEndpoint || 'http://eanserver:9000';
     this.apiClient = new KaiAPIClient(apiEndpoint);
-
-    // Set up event listeners
-    this.setupEventListeners();
 
     // Subscribe to state changes
     state.subscribe('messages', (messages) => this.renderMessages(messages));
@@ -55,6 +55,11 @@ export class ChatUI {
    */
   setupEventListeners() {
     // Form submission / stop streaming
+    if (!this.messageForm) {
+      console.error('Message form not found - event listeners cannot be attached');
+      return;
+    }
+    
     this.messageForm.addEventListener('submit', (e) => {
       e.preventDefault();
       
@@ -67,25 +72,27 @@ export class ChatUI {
     });
 
     // Auto-resize textarea
-    this.messageInput.addEventListener('input', () => {
-      this.messageInput.style.height = 'auto';
-      this.messageInput.style.height = `${this.messageInput.scrollHeight}px`;
-    });
+    if (this.messageInput) {
+      this.messageInput.addEventListener('input', () => {
+        this.messageInput.style.height = 'auto';
+        this.messageInput.style.height = `${this.messageInput.scrollHeight}px`;
+      });
 
-    // Enter to send (without shift)
-    this.messageInput.addEventListener('keydown', async (e) => {
-      const settings = await storage.getAllSettings();
-      if (e.key === 'Enter' && !e.shiftKey && settings.sendOnEnter !== false) {
-        e.preventDefault();
-        
-        // If streaming, don't send new message
-        if (state.getState('isStreaming')) {
-          return;
+      // Enter to send (without shift)
+      this.messageInput.addEventListener('keydown', async (e) => {
+        const settings = await storage.getAllSettings();
+        if (e.key === 'Enter' && !e.shiftKey && settings.sendOnEnter !== false) {
+          e.preventDefault();
+          
+          // If streaming, don't send new message
+          if (state.getState('isStreaming')) {
+            return;
+          }
+          
+          this.handleSendMessage();
         }
-        
-        this.handleSendMessage();
-      }
-    });
+      });
+    }
   }
 
   /**
