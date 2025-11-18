@@ -104,14 +104,14 @@
 
 ### Implementation for User Story 2
 
-- [ ] T034 [P] [US2] Implement conversation loading from IndexedDB on app start in src/core/state.js
-- [ ] T035 [P] [US2] Implement message history loading for current conversation in src/ui/chat.js
-- [ ] T036 [US2] Add scroll container with overflow handling in src/ui/chat.js
-- [ ] T037 [US2] Implement scroll-to-bottom on new messages in src/ui/chat.js
-- [ ] T038 [US2] Add conversation persistence after each message exchange in src/core/storage.js
-- [ ] T039 [US2] Implement conversation auto-creation on first message send
-- [ ] T040 [US2] Add conversation title auto-generation from first user message (first 50 chars)
-- [ ] T041 [US2] Display conversation title in header when conversation is active
+- [X] T034 [P] [US2] Implement conversation loading from IndexedDB on app start in src/core/state.js
+- [X] T035 [P] [US2] Implement message history loading for current conversation in src/ui/chat.js
+- [X] T036 [US2] Add scroll container with overflow handling in src/ui/chat.js
+- [X] T037 [US2] Implement scroll-to-bottom on new messages in src/ui/chat.js
+- [X] T038 [US2] Add conversation persistence after each message exchange in src/core/storage.js
+- [X] T039 [US2] Implement conversation auto-creation on first message send
+- [X] T040 [US2] Add conversation title auto-generation from first user message (first 50 chars)
+- [X] T041 [US2] Display conversation title in header when conversation is active
 
 **Checkpoint**: ✓ User Story 2 complete - Conversation history persists and displays correctly
 
@@ -125,15 +125,15 @@
 
 ### Implementation for User Story 3
 
-- [ ] T042 [P] [US3] Create sidebar component in src/ui/sidebar.js with conversation list
-- [ ] T043 [P] [US3] Implement conversation list rendering sorted by updatedAt in src/ui/sidebar.js
-- [ ] T044 [US3] Add "New Chat" button in sidebar with click handler in src/ui/sidebar.js
-- [ ] T045 [US3] Implement new conversation creation: generate UUID, initialize empty messages, save to IndexedDB
-- [ ] T046 [US3] Add conversation switching: load messages, clear current chat, render new chat
-- [ ] T047 [US3] Highlight active conversation in sidebar list
-- [ ] T048 [US3] Update conversation updatedAt timestamp when messages are added
-- [ ] T049 [US3] Add responsive sidebar toggle for mobile view
-- [ ] T050 [US3] Implement conversation count limit (max 100) with oldest deletion
+- [X] T042 [P] [US3] Create sidebar component in src/ui/sidebar.js with conversation list
+- [X] T043 [P] [US3] Implement conversation list rendering sorted by updatedAt in src/ui/sidebar.js
+- [X] T044 [US3] Add "New Chat" button in sidebar with click handler in src/ui/sidebar.js
+- [X] T045 [US3] Implement new conversation creation: generate UUID, initialize empty messages, save to IndexedDB
+- [X] T046 [US3] Add conversation switching: load messages, clear current chat, render new chat
+- [X] T047 [US3] Highlight active conversation in sidebar list
+- [X] T048 [US3] Update conversation updatedAt timestamp when messages are added
+- [X] T049 [US3] Add responsive sidebar toggle for mobile view
+- [X] T050 [US3] Implement conversation count limit (max 100) with oldest deletion
 
 **Checkpoint**: ✓ User Story 3 complete - Can create and switch between multiple conversations
 

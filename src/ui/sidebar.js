@@ -70,6 +70,14 @@ export class SidebarUI {
    * Create new chat
    */
   async createNewChat() {
+    // Check conversation limit (max 100)
+    const conversations = await storage.getAllConversations();
+    if (conversations.length >= 100) {
+      // Delete oldest conversation
+      const oldest = conversations[conversations.length - 1];
+      await storage.deleteConversation(oldest.id);
+    }
+
     const conversation = new Conversation({
       title: 'New Chat'
     });
