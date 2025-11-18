@@ -5,15 +5,26 @@
 
 const CACHE_VERSION = '1.0.0';
 const CACHE_NAME = `llmchat-v${CACHE_VERSION}`;
+
+// Use relative paths that work in subdirectories
 const STATIC_ASSETS = [
-  '/',
-  '/index.html',
-  '/manifest.json',
-  '/assets/styles.css',
-  '/app.js',
-  '/favicon.svg',
-  '/icons/icon-192.svg',
-  '/icons/icon-512.svg'
+  './',
+  './index.html',
+  './manifest.json',
+  './assets/styles.css',
+  './app.js',
+  './favicon.svg',
+  './icons/icon-192.svg',
+  './icons/icon-512.svg',
+  // Also cache with absolute paths for compatibility
+  self.registration.scope,
+  self.registration.scope + 'index.html',
+  self.registration.scope + 'manifest.json',
+  self.registration.scope + 'assets/styles.css',
+  self.registration.scope + 'app.js',
+  self.registration.scope + 'favicon.svg',
+  self.registration.scope + 'icons/icon-192.svg',
+  self.registration.scope + 'icons/icon-512.svg'
 ];
 
 // Install event - cache static assets
@@ -74,7 +85,8 @@ self.addEventListener('fetch', (event) => {
       .catch(() => {
         // Fallback for navigation requests
         if (request.mode === 'navigate') {
-          return caches.match('/index.html');
+          return caches.match('./index.html')
+            .then(response => response || caches.match(self.registration.scope + 'index.html'));
         }
         return new Response('Offline', { status: 503 });
       })

@@ -9,13 +9,13 @@
   <meta name="theme-color" content="#2563eb">
   
   <!-- Security -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' http://eanserver:9000; worker-src 'self';">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' http://eanserver:9000; worker-src 'self'; font-src 'self' data:;">
   
   <!-- Open Graph / Facebook -->
   <meta property="og:type" content="website">
   <meta property="og:title" content="LLM Chat - Minimal AI Chat Interface">
   <meta property="og:description" content="Chat with AI models in a clean, privacy-focused interface. Supports streaming, markdown, and offline access.">
-  <meta property="og:image" content="/icons/icon-512.svg">
+  <meta property="og:image" content="./icons/icon-512.svg">
   
   <!-- Twitter -->
   <meta property="twitter:card" content="summary">
@@ -23,12 +23,12 @@
   <meta property="twitter:description" content="Chat with AI models in a clean, privacy-focused interface.">
   
   <!-- PWA -->
-  <link rel="manifest" href="/manifest.json">
-  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-  <link rel="apple-touch-icon" href="/icons/icon-192.svg">
+  <link rel="manifest" href="./manifest.json">
+  <link rel="icon" type="image/svg+xml" href="./favicon.svg">
+  <link rel="apple-touch-icon" href="./icons/icon-192.svg">
   
   <!-- Styles -->
-  <link rel="stylesheet" href="/assets/styles.css">
+  <link rel="stylesheet" href="./assets/styles.css">
   
   <title>LLM Chat</title>
 </head>
@@ -104,17 +104,6 @@
   </div>
 
   <!-- Load app as ES module -->
-  <script type="module" src="/app.js"></script>
-  
-  <!-- Register Service Worker -->
-  <script>
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js')
-          .then(reg => console.log('Service Worker registered:', reg.scope))
-          .catch(err => console.error('Service Worker registration failed:', err));
-      });
-    }
-  </script>
+  <script type="module" src="./app.js"></script>
 </body>
 </html>
