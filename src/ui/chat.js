@@ -52,7 +52,7 @@ export class ChatUI {
     
     // Get API endpoint from settings
     const settings = await storage.getAllSettings();
-    const apiEndpoint = settings.apiEndpoint || 'https://watts-commented-magnet-unlock.trycloudflare.com';
+    const apiEndpoint = settings.apiEndpoint || 'https://bulllike-stephanie-lastingly.ngrok-free.dev';
     this.apiClient = new KaiAPIClient(apiEndpoint);
 
     // Subscribe to state changes
