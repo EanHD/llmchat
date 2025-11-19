@@ -4,7 +4,7 @@
  */
 
 export const DEFAULT_SETTINGS = {
-  apiEndpoint: 'https://bulllike-stephanie-lastingly.ngrok-free.dev',
+  apiEndpoint: 'https://watts-commented-magnet-unlock.trycloudflare.com',
   model: 'granite-local', // Default model
   theme: 'auto', // 'light', 'dark', 'auto'
   streaming: true,
