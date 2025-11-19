@@ -15,6 +15,7 @@ export class SidebarUI {
     this.newChatBtn = $('#new-chat-btn');
     this.sidebar = $('#sidebar');
     this.sidebarToggle = $('#sidebar-toggle');
+    this.closeSidebarBtn = $('#close-sidebar-btn');
 
     this.init();
   }
@@ -54,6 +55,13 @@ export class SidebarUI {
     if (this.sidebarToggle) {
       this.sidebarToggle.addEventListener('click', () => {
         this.sidebar.classList.toggle('open');
+      });
+    }
+    
+    // Close sidebar button (mobile)
+    if (this.closeSidebarBtn) {
+      this.closeSidebarBtn.addEventListener('click', () => {
+        this.sidebar.classList.remove('open');
       });
     }
   }

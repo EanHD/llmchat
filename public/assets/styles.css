@@ -392,15 +392,27 @@ textarea {
 .sidebar-header {
   padding: 0.75rem;
   border-bottom: 1px solid var(--border-color);
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
 }
 
 .sidebar-header button {
-  width: 100%;
   background: var(--bg-tertiary);
   color: var(--text-primary);
   font-weight: var(--font-medium);
   border: 1px solid var(--border-color);
   transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.sidebar-header #new-chat-btn {
+  flex: 1;
+}
+
+.sidebar-header .close-sidebar-btn {
+  width: auto;
+  padding: 0.5rem;
+  display: none; /* Hidden by default on desktop */
 }
 
 .sidebar-header button:hover {
@@ -912,6 +924,10 @@ textarea {
 
   .sidebar.open {
     transform: translateX(0);
+  }
+  
+  .sidebar-header .close-sidebar-btn {
+    display: flex; /* Show close button on mobile */
   }
 
   #sidebar-toggle {
