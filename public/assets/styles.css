@@ -1155,7 +1155,7 @@ textarea {
   }
 
   .chat-container {
-    padding: 0.5rem 0;
+    padding: 3.5rem 0 6rem; /* Top padding for fixed header on mobile */
   }
 
   .chat-header {
