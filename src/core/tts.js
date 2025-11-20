@@ -15,13 +15,23 @@ export class SpeechOutputController {
 
     const utterance = new SpeechSynthesisUtterance(text);
     
-    // Select a voice (prefer English)
+    // Select a voice (prefer natural sounding voices)
     const voices = this.synth.getVoices();
-    this.voice = voices.find(v => v.lang === 'en-US' && !v.localService) || voices.find(v => v.lang === 'en-US');
+    
+    // Priority list for better voices
+    this.voice = voices.find(v => v.name.includes('Google US English')) || 
+                 voices.find(v => v.name.includes('Samantha')) ||
+                 voices.find(v => v.name.includes('Natural')) ||
+                 voices.find(v => v.lang === 'en-US' && !v.localService) || 
+                 voices.find(v => v.lang === 'en-US');
     
     if (this.voice) {
       utterance.voice = this.voice;
     }
+
+    // Adjust rate and pitch for more natural feel
+    utterance.rate = 1.0;
+    utterance.pitch = 1.0;
 
     this.synth.speak(utterance);
   }

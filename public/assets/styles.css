@@ -604,6 +604,7 @@ textarea {
   padding: 0.5rem;
   transition: background-color 0.2s ease, box-shadow 0.2s ease;
   pointer-events: auto; /* Re-enable clicks on the form */
+  gap: 0.25rem;
 }
 
 .message-form:focus-within {
@@ -646,7 +647,7 @@ textarea {
   cursor: pointer;
   transition: background-color 0.2s ease;
   box-shadow: none;
-  margin: 0 0.25rem;
+  margin: 0;
 }
 
 .voice-btn:hover, #send-btn:hover:not(:disabled) {

@@ -24,11 +24,17 @@ export class TextToSpeech {
     
     const utterance = new SpeechSynthesisUtterance(text);
     
-    // Configure voice
+    // Configure voice (prefer natural sounding voices)
     const voices = this.synth.getVoices();
-    const englishVoice = voices.find(voice => voice.lang.startsWith('en'));
-    if (englishVoice) {
-      utterance.voice = englishVoice;
+    const preferredVoice = voices.find(v => v.name.includes('Google US English')) || 
+                          voices.find(v => v.name.includes('Samantha')) ||
+                          voices.find(v => v.name.includes('Natural')) ||
+                          voices.find(v => v.lang === 'en-US' && !v.localService) || 
+                          voices.find(v => v.lang === 'en-US') ||
+                          voices.find(voice => voice.lang.startsWith('en'));
+                          
+    if (preferredVoice) {
+      utterance.voice = preferredVoice;
     }
     
     utterance.rate = 1.0;
