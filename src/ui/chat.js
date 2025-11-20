@@ -531,6 +531,8 @@ export class ChatUI {
         // Create new bubble
         messageBubble = createMessageBubble(message);
         isNew = true;
+        // Only append if new
+        this.messagesContainer.appendChild(messageBubble);
       } else {
         // Update existing bubble status/classes if needed
         if (message.status && !messageBubble.classList.contains(message.status)) {
@@ -599,8 +601,8 @@ export class ChatUI {
         }
       }
 
-      // Append to container in correct order
-      this.messagesContainer.appendChild(messageBubble);
+      // Do NOT re-append existing elements to avoid layout thrashing
+      // this.messagesContainer.appendChild(messageBubble);
       lastMessageEl = messageBubble;
     }
 
