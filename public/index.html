@@ -30,6 +30,15 @@
   <!-- Styles -->
   <link rel="stylesheet" href="./assets/styles.css">
   
+  <!-- Import Map for LiveKit -->
+  <script type="importmap">
+    {
+      "imports": {
+        "livekit-client": "https://cdn.jsdelivr.net/npm/livekit-client@2.0.0/dist/livekit-client.esm.mjs"
+      }
+    }
+  </script>
+
   <title>LLM Chat</title>
 </head>
 <body>
@@ -82,7 +91,16 @@
 
       <div id="input-area" class="input-area">
         <form id="message-form" class="message-form">
-          <button type="button" id="voice-btn" class="voice-btn" aria-label="Voice input">
+          <button type="button" id="livekit-btn" class="voice-btn" aria-label="Voice Mode" style="margin-right: 8px;">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
+              <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+              <line x1="12" y1="19" x2="12" y2="23"/>
+              <line x1="8" y1="23" x2="16" y2="23"/>
+              <path d="M2 20h20" stroke-opacity="0.5" />
+            </svg>
+          </button>
+          <button type="button" id="voice-btn" class="voice-btn" aria-label="Dictation">
             <svg id="mic-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
               <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>

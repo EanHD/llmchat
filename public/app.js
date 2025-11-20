@@ -8,6 +8,7 @@ import { ChatUI } from './src/ui/chat.js';
 import { SidebarUI } from './src/ui/sidebar.js';
 import { SettingsUI } from './src/ui/settings.js';
 import { MemoryUI } from './src/ui/memory.js';
+import { VoiceModeUI } from './src/ui/voicemode.js';
 import { toast } from './src/ui/toast.js';
 import { DEFAULT_SETTINGS } from './src/models/settings.js';
 
@@ -17,6 +18,7 @@ class App {
     this.sidebarUI = null;
     this.settingsUI = null;
     this.memoryUI = null;
+    this.voiceModeUI = null;
     this.offlineBanner = null;
   }
 
@@ -39,6 +41,7 @@ class App {
       this.sidebarUI = new SidebarUI();
       this.settingsUI = new SettingsUI();
       this.memoryUI = new MemoryUI();
+      this.voiceModeUI = new VoiceModeUI(this.chatUI);
 
       // Check for offline mode
       this.setupOfflineDetection();
