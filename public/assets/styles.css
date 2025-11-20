@@ -192,7 +192,8 @@ pre code {
 /* Layout */
 #app {
   display: flex;
-  height: 100vh;
+  height: 100vh; /* Fallback */
+  height: 100dvh; /* Dynamic viewport height for mobile */
   overflow: hidden;
 }
 

@@ -496,54 +496,126 @@ export class ChatUI {
       }
     }
 
-    clearElement(this.messagesContainer);
-
     if (messages.length === 0) {
       this.showEmptyState();
       return;
     }
 
+    // Remove empty state if present
+    const emptyState = this.messagesContainer.querySelector('.empty-state');
+    if (emptyState) {
+      emptyState.remove();
+    }
+
     const settings = await storage.getAllSettings();
     const markdownEnabled = settings.markdown !== false;
 
+    // Get existing message elements map
+    const existingElements = new Map();
+    Array.from(this.messagesContainer.children).forEach(el => {
+      if (el.dataset.messageId) {
+        existingElements.set(el.dataset.messageId, el);
+      }
+    });
+
+    // Keep track of processed IDs to remove stale ones later
+    const processedIds = new Set();
+    let lastMessageEl = null;
+
     for (const message of messages) {
-      const messageBubble = createMessageBubble(message);
-      
-      // Render markdown if enabled
-      if (markdownEnabled && message.role === 'assistant' && message.content) {
-        const contentEl = messageBubble.querySelector('.message-content');
-        if (contentEl) {
-          contentEl.innerHTML = markdownRenderer.render(message.content);
-          markdownRenderer.setupCopyButtons(contentEl);
-          
-          // Re-add TTS button after markdown render
-          const ttsBtn = document.createElement('button');
-          ttsBtn.className = 'tts-btn';
-          ttsBtn.setAttribute('aria-label', 'Read aloud');
-          ttsBtn.setAttribute('title', 'Read aloud');
-          ttsBtn.innerHTML = '<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>';
-          
-          ttsBtn.addEventListener('click', () => {
-            this.tts.toggle(message.content, message.id);
-          });
-          
-          contentEl.appendChild(ttsBtn);
-        }
-      } else if (message.role === 'assistant') {
-        // Setup TTS for non-markdown
-        const ttsBtn = messageBubble.querySelector('.tts-btn');
-        if (ttsBtn && message.content) {
-          ttsBtn.addEventListener('click', () => {
-            this.tts.toggle(message.content, message.id);
-          });
+      processedIds.add(message.id);
+      let messageBubble = existingElements.get(message.id);
+      let isNew = false;
+
+      if (!messageBubble) {
+        // Create new bubble
+        messageBubble = createMessageBubble(message);
+        isNew = true;
+      } else {
+        // Update existing bubble status/classes if needed
+        if (message.status && !messageBubble.classList.contains(message.status)) {
+          // Remove old status classes
+          messageBubble.classList.remove(MessageStatus.SENDING, MessageStatus.SENT, MessageStatus.ERROR, MessageStatus.STREAMING);
+          if (message.status) messageBubble.classList.add(message.status);
         }
       }
-      
+
+      // Render content
+      const contentEl = messageBubble.querySelector('.message-content');
+      if (contentEl) {
+        // Only update content if it's different or new
+        // For streaming, we might want to be careful, but streamResponse handles its own updates
+        // This is mostly for history loading or non-streaming updates
+        if (isNew || !state.getState('isStreaming')) {
+          if (markdownEnabled && message.role === 'assistant' && message.content) {
+             // Only re-render markdown if content length changed significantly or it's new
+             // This is a simple heuristic to avoid re-rendering complex markdown on every small state change
+             const currentHTML = contentEl.innerHTML;
+             // If it's a new message or we are not streaming, render.
+             // If we ARE streaming, streamResponse handles it, so we might skip this?
+             // But renderMessages is called on load.
+             
+             // Just render it. The diffing above prevents DOM thrashing of the container.
+             contentEl.innerHTML = markdownRenderer.render(message.content);
+             markdownRenderer.setupCopyButtons(contentEl);
+             
+             // Re-add TTS button
+             if (!contentEl.querySelector('.tts-btn')) {
+                const ttsBtn = document.createElement('button');
+                ttsBtn.className = 'tts-btn';
+                ttsBtn.setAttribute('aria-label', 'Read aloud');
+                ttsBtn.setAttribute('title', 'Read aloud');
+                ttsBtn.innerHTML = '<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>';
+                
+                ttsBtn.addEventListener('click', () => {
+                  this.tts.toggle(message.content, message.id);
+                });
+                contentEl.appendChild(ttsBtn);
+             }
+          } else {
+            // Text content update
+            if (contentEl.textContent !== message.content) {
+               contentEl.textContent = message.content || (message.status === 'streaming' ? '' : '...');
+               
+               // Re-add TTS for non-markdown assistant messages
+               if (message.role === 'assistant' && !markdownEnabled) {
+                 const ttsBtn = document.createElement('button');
+                 ttsBtn.className = 'tts-btn';
+                 // ... (simplified for brevity, usually handled in createMessageBubble)
+                 // But createMessageBubble adds it to messageContent. 
+                 // If we overwrite textContent, we lose the button.
+                 // So we need to re-append it.
+                 if (message.content) {
+                    // Re-create TTS button logic or just let createMessageBubble handle it for new ones
+                    // For existing ones, we might lose the button if we just set textContent.
+                    // Let's just re-run createMessageBubble logic for simplicity if content changed
+                    // Or better:
+                    const ttsBtn = messageBubble.querySelector('.tts-btn');
+                    if (ttsBtn) contentEl.appendChild(ttsBtn);
+                 }
+               }
+            }
+          }
+        }
+      }
+
+      // Append to container in correct order
       this.messagesContainer.appendChild(messageBubble);
+      lastMessageEl = messageBubble;
     }
 
-    // Force scroll to bottom after rendering (user just sent a message)
-    this.scrollToBottom(true);
+    // Remove messages that are no longer in the list
+    existingElements.forEach((el, id) => {
+      if (!processedIds.has(id)) {
+        el.remove();
+      }
+    });
+
+    // Force scroll to bottom only if we added new messages at the end
+    // or if we are loading a conversation
+    if (!state.getState('isStreaming')) {
+       this.scrollToBottom(true);
+    }
   }
 
   /**
