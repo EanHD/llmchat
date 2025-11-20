@@ -198,6 +198,52 @@ export function createConversationItem(conversation, isActive = false, handlers 
   item.appendChild(titleContainer);
   item.appendChild(actions);
 
+  // Swipe detection for mobile
+  let touchStartX = 0;
+  let touchEndX = 0;
+  let touchStartY = 0;
+  let touchEndY = 0;
+
+  item.addEventListener('touchstart', (e) => {
+    touchStartX = e.changedTouches[0].screenX;
+    touchStartY = e.changedTouches[0].screenY;
+  }, { passive: true });
+
+  item.addEventListener('touchend', (e) => {
+    touchEndX = e.changedTouches[0].screenX;
+    touchEndY = e.changedTouches[0].screenY;
+    handleSwipe();
+  }, { passive: true });
+
+  function handleSwipe() {
+    const xDiff = touchStartX - touchEndX;
+    const yDiff = touchStartY - touchEndY;
+    
+    // Check if horizontal swipe is dominant and long enough
+    if (Math.abs(xDiff) > Math.abs(yDiff) && Math.abs(xDiff) > 50) {
+      if (xDiff > 0) {
+        // Swipe Left -> Show actions
+        // Close other swiped items first
+        document.querySelectorAll('.conversation-item.swiped').forEach(el => {
+          if (el !== item) el.classList.remove('swiped');
+        });
+        item.classList.add('swiped');
+      } else {
+        // Swipe Right -> Hide actions
+        item.classList.remove('swiped');
+      }
+    }
+  }
+
+  // Handle tap to close actions if open
+  item.addEventListener('click', (e) => {
+    if (item.classList.contains('swiped') && !e.target.closest('.conversation-actions')) {
+      item.classList.remove('swiped');
+      e.stopPropagation(); // Prevent opening chat when just closing actions
+      return;
+    }
+  });
+
   return item;
 }
 

@@ -463,6 +463,7 @@ textarea {
   gap: 0.5rem;
   position: relative;
   color: var(--text-primary);
+  overflow: hidden; /* Ensure swipe actions don't overflow */
 }
 
 .conversation-item:hover {
@@ -475,9 +476,62 @@ textarea {
   font-weight: var(--font-medium);
 }
 
+.conversation-title-container {
+  flex: 1;
+  min-width: 0; /* Allow text truncation */
+  overflow: hidden;
+}
+
 .conversation-title {
   font-size: var(--text-sm);
   color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.conversation-actions {
+  display: flex;
+  gap: 0.25rem;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  transform: translateX(10px);
+}
+
+.conversation-item:hover .conversation-actions,
+.conversation-item.swiped .conversation-actions,
+.conversation-item:focus-within .conversation-actions {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateX(0);
+}
+
+.conversation-action-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary);
+  padding: 0.25rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.conversation-action-btn:hover {
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.conversation-action-btn.delete-btn:hover {
+  color: var(--error);
+  background-color: rgba(186, 26, 26, 0.1);
+}
+
+.conversation-action-btn.star-btn {
+  color: var(--warning);
 }
 
 .sidebar-footer {
