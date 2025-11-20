@@ -52,8 +52,17 @@ export class ChatUI {
     
     // Get API endpoint from settings
     const settings = await storage.getAllSettings();
-    const apiEndpoint = settings.apiEndpoint || 'https://bulllike-stephanie-lastingly.ngrok-free.dev';
-    this.apiClient = new KaiAPIClient(apiEndpoint);
+    let apiEndpoint = settings.apiEndpoint || 'https://api.eanhd.com';
+    
+    // Ensure API endpoint has protocol
+    if (!apiEndpoint.startsWith('http://') && !apiEndpoint.startsWith('https://')) {
+      apiEndpoint = 'https://' + apiEndpoint;
+      // Save corrected endpoint
+      await storage.saveSetting('apiEndpoint', apiEndpoint);
+    }
+    
+    const customHeaders = settings.customHeaders || {};
+    this.apiClient = new KaiAPIClient(apiEndpoint, customHeaders);
 
     // Subscribe to state changes
     state.subscribe('messages', (messages) => this.renderMessages(messages));

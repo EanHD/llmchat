@@ -4,8 +4,9 @@
  */
 
 export class KaiAPIClient {
-  constructor(baseURL) {
+  constructor(baseURL, customHeaders = {}) {
     this.baseURL = baseURL;
+    this.customHeaders = customHeaders;
   }
 
   /**
@@ -39,7 +40,8 @@ export class KaiAPIClient {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'ngrok-skip-browser-warning': 'true'
+          'ngrok-skip-browser-warning': 'true',
+          ...this.customHeaders
         },
         body: JSON.stringify(payload),
         signal: controller.signal
@@ -129,7 +131,8 @@ export class KaiAPIClient {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'ngrok-skip-browser-warning': 'true'
+          'ngrok-skip-browser-warning': 'true',
+          ...this.customHeaders
         },
         body: JSON.stringify(payload),
         signal

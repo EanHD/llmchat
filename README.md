@@ -17,7 +17,7 @@ A minimal, clean Progressive Web App (PWA) for chatting with AI models via the K
 ### Prerequisites
 
 - Modern web browser (Chrome, Firefox, Safari)
-- Kai LLM server running at `http://eanserver:9000`
+- Kai LLM server accessible at `https://api.eanhd.com` (via Cloudflare Tunnel)
 
 ### Local Development
 
@@ -108,7 +108,8 @@ llmchat/
 
 Configure API endpoint and preferences in Settings panel:
 
-- **API Endpoint**: Kai server URL (default: `http://eanserver:9000`)
+- **API Endpoint**: Kai server URL (default: `https://api.eanhd.com` via Cloudflare Tunnel)
+- **Custom Headers**: Add headers for Cloudflare Access if needed (e.g., `CF-Access-Client-Id`)
 - **Model**: AI model selection
 - **Theme**: Light/Dark/Auto
 - **Streaming**: Enable/disable streaming responses
@@ -117,6 +118,7 @@ Configure API endpoint and preferences in Settings panel:
 ## Privacy
 
 All data is stored locally in your browser:
+
 - Conversations and messages: IndexedDB
 - Settings and preferences: LocalStorage
 - No data sent to external servers except Kai LLM server

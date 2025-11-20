@@ -4,7 +4,7 @@
  */
 
 export const DEFAULT_SETTINGS = {
-  apiEndpoint: 'https://bulllike-stephanie-lastingly.ngrok-free.dev',
+  apiEndpoint: 'https://api.eanhd.com',
   model: 'granite-local', // Default model
   theme: 'auto', // 'light', 'dark', 'auto'
   streaming: true,
@@ -14,7 +14,8 @@ export const DEFAULT_SETTINGS = {
   sendOnEnter: true,
   temperature: 0.7,
   maxTokens: null, // Use model default
-  customMemory: '' // Custom instructions/memory
+  customMemory: '', // Custom instructions/memory
+  customHeaders: {} // Custom HTTP headers (e.g. for Cloudflare Access)
 };
 
 export class Settings {
@@ -66,6 +67,12 @@ export class Settings {
     // API endpoint
     if (data.apiEndpoint && typeof data.apiEndpoint !== 'string') {
       errors.push('Invalid API endpoint');
+    } else if (data.apiEndpoint) {
+      // Ensure API endpoint has protocol
+      if (!data.apiEndpoint.startsWith('http://') && !data.apiEndpoint.startsWith('https://')) {
+        // Auto-fix: prepend https://
+        data.apiEndpoint = 'https://' + data.apiEndpoint;
+      }
     }
 
     // Theme
@@ -92,6 +99,13 @@ export class Settings {
     if (data.maxTokens !== undefined && data.maxTokens !== null) {
       if (!Number.isInteger(data.maxTokens) || data.maxTokens < 1) {
         errors.push('Max tokens must be a positive integer');
+      }
+    }
+
+    // Custom Headers
+    if (data.customHeaders !== undefined) {
+      if (typeof data.customHeaders !== 'object' || data.customHeaders === null) {
+        errors.push('Custom headers must be an object');
       }
     }
 

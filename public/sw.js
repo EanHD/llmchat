@@ -45,6 +45,11 @@ self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
 
+  // Skip chrome-extension and other unsupported schemes
+  if (!url.protocol.startsWith('http')) {
+    return;
+  }
+
   // API requests - network first
   if (url.pathname.startsWith('/v1/')) {
     event.respondWith(
@@ -68,7 +73,8 @@ self.addEventListener('fetch', (event) => {
             if (request.method === 'GET' && response.status === 200) {
               const responseClone = response.clone();
               caches.open(CACHE_NAME)
-                .then((cache) => cache.put(request, responseClone));
+                .then((cache) => cache.put(request, responseClone))
+                .catch((err) => console.warn('Cache put failed:', err));
             }
             return response;
           });

@@ -80,14 +80,49 @@ export class SettingsUI {
     // API Endpoint
     this.settingsContent.appendChild(this.createSettingGroup(
       'API Endpoint',
-      'URL of the Kai LLM server',
+      'URL of the Kai LLM server (via Cloudflare Tunnel)',
       createElement('input', {
         type: 'text',
         className: 'setting-input',
         value: settings.apiEndpoint || DEFAULT_SETTINGS.apiEndpoint,
-        placeholder: 'https://eanserver:9000',
-        onInput: (e) => this.saveSetting('apiEndpoint', e.target.value)
+        placeholder: 'https://api.eanhd.com',
+        onInput: (e) => {
+          let value = e.target.value.trim();
+          // Auto-add https:// if missing protocol
+          if (value && !value.startsWith('http://') && !value.startsWith('https://')) {
+            value = 'https://' + value;
+          }
+          this.saveSetting('apiEndpoint', value);
+        }
       })
+    ));
+
+    // Custom Headers (JSON)
+    const headersInput = createElement('textarea', {
+      className: 'setting-input',
+      style: 'height: 100px; font-family: monospace;',
+      placeholder: '{\n  "CF-Access-Client-Id": "..."\n}',
+      onChange: (e) => {
+        try {
+          const value = e.target.value.trim();
+          const headers = value ? JSON.parse(value) : {};
+          this.saveSetting('customHeaders', headers);
+          e.target.style.borderColor = '';
+        } catch (err) {
+          e.target.style.borderColor = 'red';
+          alert('Invalid JSON for headers');
+        }
+      }
+    });
+    
+    if (settings.customHeaders && Object.keys(settings.customHeaders).length > 0) {
+      headersInput.value = JSON.stringify(settings.customHeaders, null, 2);
+    }
+
+    this.settingsContent.appendChild(this.createSettingGroup(
+      'Custom Headers (JSON)',
+      'Additional HTTP headers (e.g. for Cloudflare Access)',
+      headersInput
     ));
 
     // Model Selection (will be populated from API)

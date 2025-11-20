@@ -60,7 +60,11 @@ export function addListener(element, event, handler, options) {
 export function $(selector, context = document) {
   const element = context.querySelector(selector);
   if (!element) {
-    console.warn(`Element not found: ${selector}`);
+    // Only warn for critical elements (not buttons that may be hidden on desktop)
+    const optionalSelectors = ['#close-sidebar-btn', '#voice-btn'];
+    if (!optionalSelectors.includes(selector)) {
+      console.warn(`Element not found: ${selector}`);
+    }
   }
   return element;
 }
