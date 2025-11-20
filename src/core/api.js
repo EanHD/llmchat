@@ -18,7 +18,7 @@ export class KaiAPIClient {
       temperature = 0.7,
       maxTokens = null,
       stream = false,
-      timeout = 60000 // 60 second timeout
+      timeout = 120000 // 120 second timeout
     } = options;
 
     const payload = {
@@ -100,7 +100,7 @@ export class KaiAPIClient {
       model = 'granite-local',
       temperature = 0.7,
       maxTokens = null,
-      timeout = 30000 // 30 second timeout
+      timeout = 60000 // 60 second timeout
     } = options;
 
     const payload = {
@@ -149,7 +149,7 @@ export class KaiAPIClient {
       const decoder = new TextDecoder();
       let buffer = '';
       let lastChunkTime = Date.now();
-      const CHUNK_TIMEOUT = 10000; // 10s max between chunks
+      const CHUNK_TIMEOUT = 30000; // 30s max between chunks
 
       try {
         while (true) {
@@ -169,23 +169,31 @@ export class KaiAPIClient {
 
           for (const line of lines) {
             const trimmed = line.trim();
-            console.log('[API] Processing line:', trimmed.substring(0, 100));
             
-            if (!trimmed || !trimmed.startsWith('data: ')) {
-              console.log('[API] Skipping line (empty or not data:)');
+            if (!trimmed) {
               continue;
             }
-
-            let data = trimmed.substring(6); // Remove 'data: ' prefix
             
-            // Handle double 'data:' prefix (some servers send 'data: data: {...}')
-            if (data.startsWith('data: ')) {
-              data = data.substring(6);
+            console.log('[API] Processing line:', trimmed.substring(0, 100));
+            
+            // Handle various SSE formats
+            let data = trimmed;
+            
+            // Remove 'data:' prefix (single or multiple)
+            while (data.startsWith('data:')) {
+              data = data.substring(5).trim();
+            }
+            
+            // Skip empty data or non-data lines
+            if (!data || (!data.startsWith('{') && data !== '[DONE]')) {
+              console.log('[API] Skipping non-JSON line:', data.substring(0, 50));
+              continue;
             }
             
             console.log('[API] Extracted data:', data.substring(0, 100));
 
             if (data === '[DONE]') {
+              console.log('[API] Stream complete - received [DONE]');
               return;
             }
 
@@ -193,15 +201,24 @@ export class KaiAPIClient {
               const parsed = JSON.parse(data);
               console.log('[API] Parsed SSE chunk:', parsed);
               
-              if (parsed.choices && parsed.choices[0] && parsed.choices[0].delta) {
-                console.log('[API] Yielding delta:', parsed.choices[0].delta);
-                yield parsed.choices[0].delta;
+              // Handle different response formats
+              if (parsed.choices && parsed.choices[0]) {
+                const choice = parsed.choices[0];
+                
+                // Check for delta (streaming format)
+                if (choice.delta && choice.delta.content !== undefined) {
+                  console.log('[API] Yielding delta:', choice.delta);
+                  yield choice.delta;
+                }
+                // Fallback: check for message (some servers use this)
+                else if (choice.message && choice.message.content) {
+                  console.log('[API] Yielding message as delta:', choice.message);
+                  yield { content: choice.message.content };
+                }
               }
             } catch (e) {
-              // Only warn if the data looks like it should be JSON
-              if (data.startsWith('{')) {
-                console.warn('Failed to parse SSE data:', data, e);
-              }
+              console.error('[API] Failed to parse SSE JSON:', data.substring(0, 200), 'Error:', e.message);
+              // Continue processing other chunks instead of failing completely
             }
           }
           
@@ -215,8 +232,9 @@ export class KaiAPIClient {
       }
     } catch (error) {
       if (error.name === 'AbortError') {
-        throw new Error('Request timed out after 30 seconds');
+        throw new Error('Request timed out after 60 seconds');
       }
+      console.error('[API] Stream error:', error);
       throw error;
     } finally {
       clearTimeout(timeoutId);
