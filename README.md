@@ -119,15 +119,15 @@ Configure API endpoint and preferences in Settings panel:
 
 ## Voice Mode
 
-Voice mode enables conversational interaction with speech input and output:
+Voice mode enables conversational interaction with speech input and output (100% browser-based):
 
 - **STT**: Web Speech API converts speech to text
 - **Speech Cleanup**: Removes fillers, false starts, and disfluencies automatically
 - **Kai Integration**: Cleaned text sent to Kai with voice-aware system prompt
 - **TTS**: Speech Synthesis API speaks responses
-- **LiveKit**: Manages audio transport and session
+- **No Backend Required**: Works fully on GitHub Pages
 
-See [VOICE_SETUP.md](./VOICE_SETUP.md) and [SPEECH_CLEANUP.md](./SPEECH_CLEANUP.md) for details.
+See [SPEECH_CLEANUP.md](./SPEECH_CLEANUP.md) for details on how speech cleanup works.
 
 ### Speech Cleanup Features
 

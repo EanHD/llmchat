@@ -4,8 +4,7 @@
   "description": "LLM Chat Interface PWA - A minimal ChatGPT clone connecting to Kai LLM server",
   "type": "module",
   "scripts": {
-    "start": "node server/index.js",
-    "dev": "node --watch server/index.js",
+    "start": "python3 -m http.server 8000 --directory public",
     "test": "jest",
     "test:e2e": "playwright test",
     "test:watch": "jest --watch",
@@ -26,10 +25,6 @@
     "jest-environment-jsdom": "^29.7.0"
   },
   "dependencies": {
-    "cors": "^2.8.5",
-    "dotenv": "^17.2.3",
-    "express": "^5.1.0",
-    "livekit-server-sdk": "^2.14.1",
     "marked": "^11.0.0"
   },
   "jest": {

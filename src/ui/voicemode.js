@@ -1,12 +1,12 @@
 /**
  * Voice Mode Component
- * Integrates LiveKit, STT, and TTS for conversational voice experience
+ * Browser-only voice mode using Web Speech API (STT) and Speech Synthesis (TTS)
+ * No backend required - works fully on GitHub Pages
  */
 
 import { $ } from '../utils/dom.js';
 import { state } from '../core/state.js';
 import { storage } from '../core/storage.js';
-import { livekitManager } from '../core/livekit.js';
 import { SpeechInputController } from '../core/stt.js';
 import { speechOutput } from '../core/tts.js';
 import { SpeechCleanup } from '../core/speech-cleanup.js';
@@ -18,13 +18,10 @@ import { KaiAPIClient } from '../core/api.js';
 export class VoiceModeUI {
   constructor(chatUI) {
     this.chatUI = chatUI;
-    this.livekitBtn = $('#livekit-btn');
+    this.voiceBtn = $('#livekit-btn');
     this.messageInput = $('#message-input');
     
     this.isVoiceModeActive = false;
-    this.sessionId = null;
-    this.userId = null;
-    
     this.sttController = null;
     this.interimTranscript = '';
     
@@ -32,36 +29,16 @@ export class VoiceModeUI {
   }
 
   init() {
-    if (!this.livekitBtn) {
-      console.warn('LiveKit button not found');
+    if (!this.voiceBtn) {
+      console.warn('Voice button not found');
       return;
     }
 
-    // Generate user identity
-    this.userId = this.getUserId();
-
-    // Setup click handler
-    this.livekitBtn.addEventListener('click', () => {
-      this.toggleVoiceMode();
-    });
+    this.setupEventListeners();
   }
 
-  getUserId() {
-    let userId = localStorage.getItem('userId');
-    if (!userId) {
-      userId = 'user_' + Math.random().toString(36).substring(2, 15);
-      localStorage.setItem('userId', userId);
-    }
-    return userId;
-  }
-
-  getSessionId() {
-    const conversationId = state.getState('currentConversationId');
-    if (conversationId) {
-      return conversationId;
-    }
-    // Generate new session ID
-    return 'session_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
+  setupEventListeners() {
+    this.voiceBtn.addEventListener('click', () => this.toggleVoiceMode());
   }
 
   async toggleVoiceMode() {
@@ -74,17 +51,8 @@ export class VoiceModeUI {
 
   async startVoiceMode() {
     try {
-      // Get session ID
-      this.sessionId = this.getSessionId();
-      const roomName = `room_llmchat_${this.sessionId}`;
-
-      // Connect to LiveKit
-      state.showToast('Connecting to voice mode...', 'info');
-      await livekitManager.connect(roomName, this.userId);
-
-      // Start audio publishing
-      await livekitManager.startAudio();
-
+      console.log('[VoiceMode] Starting browser-only voice mode...');
+      
       // Initialize STT
       this.sttController = new SpeechInputController({
         onInterimText: (text) => this.handleInterimTranscript(text),
@@ -100,17 +68,20 @@ export class VoiceModeUI {
       // Update UI
       this.isVoiceModeActive = true;
       this.updateButtonState();
-      state.showToast('Voice mode active - speak to chat', 'success');
-
+      this.messageInput.placeholder = 'Listening...';
+      
+      state.showToast('Voice mode active - speak now', 'success');
+      console.log('[VoiceMode] Voice mode started');
     } catch (error) {
-      console.error('Failed to start voice mode:', error);
+      console.error('[VoiceMode] Failed to start:', error);
       state.showToast('Failed to start voice mode: ' + error.message, 'error');
-      await this.stopVoiceMode();
     }
   }
 
   async stopVoiceMode() {
     try {
+      console.log('[VoiceMode] Stopping voice mode...');
+      
       // Stop STT
       if (this.sttController) {
         this.sttController.stopListening();
@@ -120,34 +91,32 @@ export class VoiceModeUI {
       // Stop TTS
       speechOutput.stop();
 
-      // Stop LiveKit audio and disconnect
-      await livekitManager.stopAudio();
-      await livekitManager.disconnect();
-
-      // Clear interim transcript
+      // Clear interim
       this.interimTranscript = '';
+      this.messageInput.value = '';
       this.messageInput.placeholder = 'Send a message...';
 
       // Update UI
       this.isVoiceModeActive = false;
       this.updateButtonState();
+      
       state.showToast('Voice mode stopped', 'info');
-
+      console.log('[VoiceMode] Voice mode stopped');
     } catch (error) {
-      console.error('Error stopping voice mode:', error);
+      console.error('[VoiceMode] Error stopping voice mode:', error);
     }
   }
 
   handleInterimTranscript(text) {
-    // Show interim transcript in input as placeholder
+    // Show interim transcript in message input
     this.interimTranscript = text;
-    this.messageInput.placeholder = `Listening: "${text}"...`;
+    this.messageInput.value = text;
   }
 
   async handleFinalTranscript(text) {
     // Reset interim
     this.interimTranscript = '';
-    this.messageInput.placeholder = 'Listening...';
+    this.messageInput.value = '';
 
     if (!text || !text.trim()) {
       return;
@@ -162,17 +131,9 @@ export class VoiceModeUI {
     // Check if we should ask for clarification
     if (cleanupResult.shouldAskForClarification || SpeechCleanup.isGibberish(cleanupResult.cleaned)) {
       console.warn('[VoiceMode] Input unclear after cleanup, asking for rephrase');
-      this.messageInput.placeholder = 'Could you rephrase that? (unclear input)';
       
       // Speak the clarification request
       speechOutput.speak("I didn't quite catch that. Could you rephrase?");
-      
-      // Reset placeholder after a moment
-      setTimeout(() => {
-        if (this.isVoiceModeActive) {
-          this.messageInput.placeholder = 'Listening...';
-        }
-      }, 3000);
       
       return;
     }
@@ -188,6 +149,8 @@ export class VoiceModeUI {
       await this.sendMessageToKai(cleanupResult.cleaned);
     } catch (error) {
       console.error('Failed to process voice message:', error);
+      // Speak error message
+      speechOutput.speak("Sorry, there was an error processing your message.");
       state.showToast('Failed to process message', 'error');
     }
   }
@@ -320,13 +283,13 @@ IMPORTANT VOICE INPUT GUIDELINES:
 
   updateButtonState() {
     if (this.isVoiceModeActive) {
-      this.livekitBtn.classList.add('active');
-      this.livekitBtn.setAttribute('aria-label', 'Stop Voice Mode');
-      this.livekitBtn.style.color = '#ef4444'; // Red when active
+      this.voiceBtn.classList.add('active');
+      this.voiceBtn.setAttribute('aria-label', 'Stop Voice Mode');
+      this.voiceBtn.style.color = '#ef4444'; // Red when active
     } else {
-      this.livekitBtn.classList.remove('active');
-      this.livekitBtn.setAttribute('aria-label', 'Voice Mode');
-      this.livekitBtn.style.color = '';
+      this.voiceBtn.classList.remove('active');
+      this.voiceBtn.setAttribute('aria-label', 'Voice Mode');
+      this.voiceBtn.style.color = '';
     }
   }
 }
