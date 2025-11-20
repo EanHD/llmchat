@@ -5,6 +5,8 @@ A minimal, clean Progressive Web App (PWA) for chatting with AI models via the K
 ## Features
 
 - 💬 Real-time chat with AI models
+- 🎤 Voice mode with LiveKit, STT, and TTS
+- 🧹 Speech cleanup layer for natural conversation
 - 📱 Progressive Web App - install to home screen
 - 💾 Conversation history persists locally
 - 🌓 Dark mode support
@@ -114,6 +116,31 @@ Configure API endpoint and preferences in Settings panel:
 - **Theme**: Light/Dark/Auto
 - **Streaming**: Enable/disable streaming responses
 - **Auto-scroll**: Keep newest messages visible
+
+## Voice Mode
+
+Voice mode enables conversational interaction with speech input and output:
+
+- **STT**: Web Speech API converts speech to text
+- **Speech Cleanup**: Removes fillers, false starts, and disfluencies automatically
+- **Kai Integration**: Cleaned text sent to Kai with voice-aware system prompt
+- **TTS**: Speech Synthesis API speaks responses
+- **LiveKit**: Manages audio transport and session
+
+See [VOICE_SETUP.md](./VOICE_SETUP.md) and [SPEECH_CLEANUP.md](./SPEECH_CLEANUP.md) for details.
+
+### Speech Cleanup Features
+
+The speech cleanup layer handles natural speech patterns:
+
+- ✅ Removes filler words (um, uh, like, you know)
+- ✅ Removes false starts (repeated words, stutters)
+- ✅ Removes laughter and noise artifacts
+- ✅ Normalizes punctuation
+- ✅ Calculates confidence scores
+- ✅ Asks for clarification when input is unclear
+
+This ensures that casual, natural speech doesn't confuse the AI or break functionality.
 
 ## Privacy
 

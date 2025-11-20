@@ -9,6 +9,7 @@ import { storage } from '../core/storage.js';
 import { livekitManager } from '../core/livekit.js';
 import { SpeechInputController } from '../core/stt.js';
 import { speechOutput } from '../core/tts.js';
+import { SpeechCleanup } from '../core/speech-cleanup.js';
 import { Message, MessageStatus, MessageRole } from '../models/message.js';
 import { Conversation } from '../models/conversation.js';
 import { generateTitle } from '../utils/format.js';
@@ -152,11 +153,39 @@ export class VoiceModeUI {
       return;
     }
 
-    console.log('[VoiceMode] Final transcript:', text);
+    console.log('[VoiceMode] Raw transcript:', text);
+
+    // Clean up speech disfluencies
+    const cleanupResult = SpeechCleanup.cleanup(text);
+    console.log('[VoiceMode] Cleanup result:', cleanupResult);
+
+    // Check if we should ask for clarification
+    if (cleanupResult.shouldAskForClarification || SpeechCleanup.isGibberish(cleanupResult.cleaned)) {
+      console.warn('[VoiceMode] Input unclear after cleanup, asking for rephrase');
+      this.messageInput.placeholder = 'Could you rephrase that? (unclear input)';
+      
+      // Speak the clarification request
+      speechOutput.speak("I didn't quite catch that. Could you rephrase?");
+      
+      // Reset placeholder after a moment
+      setTimeout(() => {
+        if (this.isVoiceModeActive) {
+          this.messageInput.placeholder = 'Listening...';
+        }
+      }, 3000);
+      
+      return;
+    }
+
+    // Log if cleanup was applied
+    if (cleanupResult.wasModified) {
+      console.log('[VoiceMode] Cleaned text:', cleanupResult.cleaned);
+      console.log('[VoiceMode] Confidence:', cleanupResult.confidence);
+    }
 
     try {
-      // Add user message to chat
-      await this.sendMessageToKai(text.trim());
+      // Send cleaned text to Kai
+      await this.sendMessageToKai(cleanupResult.cleaned);
     } catch (error) {
       console.error('Failed to process voice message:', error);
       state.showToast('Failed to process message', 'error');
@@ -201,6 +230,24 @@ export class VoiceModeUI {
           content: m.content
         }));
 
+      // Add voice-aware system prompt
+      const systemPrompt = {
+        role: 'system',
+        content: `You are a helpful AI assistant. The user is interacting with you via voice.
+
+IMPORTANT VOICE INPUT GUIDELINES:
+- User input may contain minor speech disfluencies (repeated words, filler sounds, etc.) even after cleanup
+- Disfluencies have been mostly removed, but some natural speech patterns may remain
+- Focus on the user's INTENT and MEANING, not exact phrasing
+- If you're uncertain about what the user meant, ask for clarification
+- NEVER assume or invent meaning from unclear input
+- Respond naturally and conversationally
+- Keep responses concise for voice output (aim for 2-3 sentences unless more detail is requested)`
+      };
+
+      // Prepend system message
+      const messagesWithSystem = [systemPrompt, ...apiMessages];
+
       // Get settings and API client
       const settings = await storage.getAllSettings();
       let apiEndpoint = settings.apiEndpoint || 'https://api.eanhd.com';
@@ -214,7 +261,7 @@ export class VoiceModeUI {
       const modelToUse = settings.model || 'granite-local';
 
       // Call Kai API (non-streaming for voice mode)
-      const response = await apiClient.sendMessage(apiMessages, {
+      const response = await apiClient.sendMessage(messagesWithSystem, {
         model: modelToUse,
         temperature: settings.temperature,
         maxTokens: settings.maxTokens
