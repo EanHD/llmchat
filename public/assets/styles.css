@@ -118,7 +118,7 @@ input, textarea { font-family: inherit; }
 
 .sidebar-footer { 
   padding: 1rem; 
-  padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+  padding-bottom: calc(0.5rem + env(safe-area-inset-bottom));
   border-top: 1px solid var(--border-color); 
   display: flex; 
   justify-content: space-between; 
