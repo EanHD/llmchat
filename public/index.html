@@ -128,32 +128,38 @@
       <button class="reaction-emoji" data-reaction="💀" aria-label="Tone wrong">💀</button>
     </div>
 
+    <!-- Settings Panel Backdrop -->
+    <div id="settings-backdrop" class="panel-backdrop hidden"></div>
+
     <!-- Settings Panel (Hidden by default) -->
     <div id="settings-panel" class="settings-panel hidden">
-      <div class="settings-header">
+      <div class="panel-header">
         <h2>Settings</h2>
-        <button id="close-settings-btn" class="icon" aria-label="Close settings">
+        <button id="close-settings-btn" class="panel-close-btn" aria-label="Close settings">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M18 6L6 18M6 6l12 12"/>
           </svg>
         </button>
       </div>
-      <div class="settings-content">
+      <div class="panel-content">
         <!-- Settings form will be rendered here -->
       </div>
     </div>
 
+    <!-- Memory Panel Backdrop -->
+    <div id="memory-backdrop" class="panel-backdrop hidden"></div>
+
     <!-- Memory Panel (Hidden by default) -->
     <div id="memory-panel" class="settings-panel hidden">
-      <div class="settings-header">
+      <div class="panel-header">
         <h2>Memory</h2>
-        <button id="close-memory-btn" class="icon" aria-label="Close memory">
+        <button id="close-memory-btn" class="panel-close-btn" aria-label="Close memory">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M18 6L6 18M6 6l12 12"/>
           </svg>
         </button>
       </div>
-      <div class="settings-content">
+      <div class="panel-content">
         <div class="memory-section">
           <h3>Custom Instructions</h3>
           <p class="memory-description">Add custom instructions that will be included in every conversation to personalize responses.</p>

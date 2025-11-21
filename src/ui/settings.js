@@ -11,7 +11,8 @@ import { $, createElement } from '../utils/dom.js';
 export class SettingsUI {
   constructor() {
     this.settingsPanel = $('#settings-panel');
-    this.settingsContent = $('.settings-content', this.settingsPanel);
+    this.settingsBackdrop = $('#settings-backdrop');
+    this.settingsContent = $('.panel-content', this.settingsPanel);
     this.settingsBtn = $('#settings-btn');
     this.closeSettingsBtn = $('#close-settings-btn');
 
@@ -40,12 +41,15 @@ export class SettingsUI {
       this.closeSettings();
     });
 
-    // Close on overlay click
-    this.settingsPanel.addEventListener('click', (e) => {
-      if (e.target === this.settingsPanel) {
+    // Close on backdrop click
+    if (this.settingsBackdrop) {
+      this.settingsBackdrop.addEventListener('click', () => {
         this.closeSettings();
-      }
-    });
+      });
+    }
+
+    // Close on panel swipe right (mobile)
+    this.setupSwipeToClose();
 
     // Close on Escape key
     document.addEventListener('keydown', (e) => {
@@ -56,10 +60,55 @@ export class SettingsUI {
   }
 
   /**
+   * Setup swipe-to-close gesture
+   */
+  setupSwipeToClose() {
+    let startX = 0;
+    let currentX = 0;
+    let isDragging = false;
+
+    this.settingsPanel.addEventListener('touchstart', (e) => {
+      startX = e.touches[0].clientX;
+      isDragging = true;
+    }, { passive: true });
+
+    this.settingsPanel.addEventListener('touchmove', (e) => {
+      if (!isDragging) return;
+      currentX = e.touches[0].clientX;
+      const diff = currentX - startX;
+      
+      // Only allow swipe right
+      if (diff > 0) {
+        this.settingsPanel.style.transform = `translateX(${diff}px)`;
+      }
+    }, { passive: true });
+
+    this.settingsPanel.addEventListener('touchend', () => {
+      if (!isDragging) return;
+      isDragging = false;
+      
+      const diff = currentX - startX;
+      
+      // Close if swiped more than 100px
+      if (diff > 100) {
+        this.closeSettings();
+      } else {
+        // Snap back
+        this.settingsPanel.style.transform = '';
+      }
+    });
+  }
+
+  /**
    * Open settings panel
    */
   openSettings() {
     this.settingsPanel.classList.remove('hidden');
+    if (this.settingsBackdrop) {
+      this.settingsBackdrop.classList.remove('hidden');
+    }
+    // Prevent body scroll on mobile
+    document.body.style.overflow = 'hidden';
   }
 
   /**
@@ -67,6 +116,13 @@ export class SettingsUI {
    */
   closeSettings() {
     this.settingsPanel.classList.add('hidden');
+    if (this.settingsBackdrop) {
+      this.settingsBackdrop.classList.add('hidden');
+    }
+    // Reset transform in case it was mid-swipe
+    this.settingsPanel.style.transform = '';
+    // Restore body scroll
+    document.body.style.overflow = '';
   }
 
   /**

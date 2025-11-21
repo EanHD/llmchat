@@ -10,6 +10,7 @@ import { $ } from '../utils/dom.js';
 export class MemoryUI {
   constructor() {
     this.memoryPanel = $('#memory-panel');
+    this.memoryBackdrop = $('#memory-backdrop');
     this.memoryBtn = $('#memory-btn');
     this.closeMemoryBtn = $('#close-memory-btn');
     this.customMemoryInput = $('#custom-memory-input');
@@ -30,6 +31,16 @@ export class MemoryUI {
     this.closeMemoryBtn.addEventListener('click', () => {
       this.hide();
     });
+
+    // Close on backdrop click
+    if (this.memoryBackdrop) {
+      this.memoryBackdrop.addEventListener('click', () => {
+        this.hide();
+      });
+    }
+
+    // Setup swipe-to-close
+    this.setupSwipeToClose();
     
     // Save custom memory
     this.saveMemoryBtn.addEventListener('click', async () => {
@@ -42,15 +53,67 @@ export class MemoryUI {
     // Load auto-generated memories
     await this.loadAutoMemories();
   }
+
+  /**
+   * Setup swipe-to-close gesture
+   */
+  setupSwipeToClose() {
+    let startX = 0;
+    let currentX = 0;
+    let isDragging = false;
+
+    this.memoryPanel.addEventListener('touchstart', (e) => {
+      startX = e.touches[0].clientX;
+      isDragging = true;
+    }, { passive: true });
+
+    this.memoryPanel.addEventListener('touchmove', (e) => {
+      if (!isDragging) return;
+      currentX = e.touches[0].clientX;
+      const diff = currentX - startX;
+      
+      // Only allow swipe right
+      if (diff > 0) {
+        this.memoryPanel.style.transform = `translateX(${diff}px)`;
+      }
+    }, { passive: true });
+
+    this.memoryPanel.addEventListener('touchend', () => {
+      if (!isDragging) return;
+      isDragging = false;
+      
+      const diff = currentX - startX;
+      
+      // Close if swiped more than 100px
+      if (diff > 100) {
+        this.hide();
+      } else {
+        // Snap back
+        this.memoryPanel.style.transform = '';
+      }
+    });
+  }
   
   show() {
     this.memoryPanel.classList.remove('hidden');
+    if (this.memoryBackdrop) {
+      this.memoryBackdrop.classList.remove('hidden');
+    }
+    // Prevent body scroll on mobile
+    document.body.style.overflow = 'hidden';
     this.loadCustomMemory();
     this.loadAutoMemories();
   }
   
   hide() {
     this.memoryPanel.classList.add('hidden');
+    if (this.memoryBackdrop) {
+      this.memoryBackdrop.classList.add('hidden');
+    }
+    // Reset transform in case it was mid-swipe
+    this.memoryPanel.style.transform = '';
+    // Restore body scroll
+    document.body.style.overflow = '';
   }
   
   async saveCustomMemory() {
