@@ -64,6 +64,7 @@ export class MemoryUI {
 
     this.memoryPanel.addEventListener('touchstart', (e) => {
       startX = e.touches[0].clientX;
+      currentX = startX;
       isDragging = true;
     }, { passive: true });
 
@@ -95,6 +96,12 @@ export class MemoryUI {
   }
   
   show() {
+    // Close settings panel if open
+    const settingsPanel = $('#settings-panel');
+    const settingsBackdrop = $('#settings-backdrop');
+    if (settingsPanel) settingsPanel.classList.add('hidden');
+    if (settingsBackdrop) settingsBackdrop.classList.add('hidden');
+
     this.memoryPanel.classList.remove('hidden');
     if (this.memoryBackdrop) {
       this.memoryBackdrop.classList.remove('hidden');

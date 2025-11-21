@@ -90,7 +90,7 @@ input, textarea { font-family: inherit; }
 .sidebar button.icon {
   background: transparent;
   border: none;
-  color: #888; /* Subtle gray, no white highlight */
+  color: #888;
   width: 36px;
   height: 36px;
   border-radius: 8px;
@@ -103,7 +103,7 @@ input, textarea { font-family: inherit; }
 }
 .sidebar .icon:hover,
 .sidebar button.icon:hover {
-  background: rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.1);
   color: #fff;
 }
 .sidebar .icon svg,
@@ -111,7 +111,67 @@ input, textarea { font-family: inherit; }
   pointer-events: none;
 }
 
-/* Main Chat Area */
+/* Conversation Actions */
+.conversation-item {
+  position: relative;
+  padding: 12px 16px;
+  margin-bottom: 4px;
+  border-radius: var(--radius-md);
+  color: var(--text-secondary);
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s;
+  overflow: hidden;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.conversation-title-container {
+  flex: 1;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  margin-right: 8px;
+}
+
+.conversation-actions {
+  display: flex;
+  gap: 4px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.conversation-item:hover .conversation-actions,
+.conversation-item.swiped .conversation-actions,
+.conversation-item:focus-within .conversation-actions {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.conversation-action-btn {
+  background: transparent;
+  border: none;
+  color: #666;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  padding: 0;
+}
+
+.conversation-action-btn:hover {
+  background: rgba(255,255,255,0.1);
+  color: #fff;
+}
+
+.conversation-item:hover { background: var(--bg-tertiary); color: #fff; }
+.conversation-item.active { background: var(--bg-secondary); color: #fff; font-weight: 500; }
 .main { 
   flex: 1; 
   display: flex; 
@@ -203,6 +263,39 @@ input, textarea { font-family: inherit; }
 .message.assistant .message-content {
   background: transparent;
   padding: 0;
+}
+
+/* Assistant Message Actions */
+.assistant-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.message.assistant:hover .assistant-actions {
+  opacity: 1;
+}
+
+.btn-icon {
+  background: transparent;
+  border: none;
+  color: #666;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  padding: 0;
+}
+
+.btn-icon:hover {
+  background: rgba(255,255,255,0.1);
+  color: #fff;
 }
 
 /* Input Area - The "Grok" Pill */
@@ -441,7 +534,7 @@ pre code { background: transparent; padding: 0; }
 
 /* Panel Header */
 .panel-header {
-  padding: 24px 20px 16px 20px;
+  padding: 24px 24px 16px 24px;
   padding-top: calc(24px + env(safe-area-inset-top));
   border-bottom: 1px solid rgba(255,255,255,0.08);
   display: flex;
@@ -453,7 +546,7 @@ pre code { background: transparent; padding: 0; }
   flex-shrink: 0;
 }
 .panel-header h2 {
-  font-size: 24px;
+  font-size: 28px;
   font-weight: 700;
   color: #fff;
   margin: 0;
@@ -462,11 +555,11 @@ pre code { background: transparent; padding: 0; }
 
 /* Panel Close Button */
 .panel-close-btn {
-  background: rgba(255,255,255,0.08);
+  background: transparent;
   border: none;
   color: #888;
-  width: 36px;
-  height: 36px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
   display: flex;
   align-items: center;
@@ -476,7 +569,7 @@ pre code { background: transparent; padding: 0; }
   flex-shrink: 0;
 }
 .panel-close-btn:hover {
-  background: rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.1);
   color: #fff;
 }
 .panel-close-btn svg {
@@ -487,14 +580,14 @@ pre code { background: transparent; padding: 0; }
 .panel-content {
   flex: 1;
   overflow-y: auto;
-  padding: 24px 20px;
-  padding-bottom: calc(24px + env(safe-area-inset-bottom));
+  padding: 24px 24px;
+  padding-bottom: calc(32px + env(safe-area-inset-bottom));
   -webkit-overflow-scrolling: touch;
 }
 
 /* Setting Groups */
 .setting-group {
-  margin-bottom: 28px;
+  margin-bottom: 32px;
   padding-bottom: 24px;
   border-bottom: 1px solid rgba(255,255,255,0.05);
 }
@@ -504,33 +597,33 @@ pre code { background: transparent; padding: 0; }
 
 .setting-label {
   display: block;
-  font-size: 15px;
+  font-size: 17px;
   font-weight: 600;
   color: #fff;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
 }
 
 .setting-description {
-  font-size: 13px;
-  color: #888;
+  font-size: 14px;
+  color: #999;
   line-height: 1.5;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
 }
 
 .setting-input {
   width: 100%;
-  background: rgba(255,255,255,0.05);
-  border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.05);
   color: #fff;
-  padding: 12px 14px;
-  border-radius: 10px;
-  font-size: 15px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  font-size: 16px;
   font-family: inherit;
   transition: all 0.2s;
 }
 .setting-input:focus {
   outline: none;
-  background: rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.12);
   border-color: rgba(0,123,255,0.5);
 }
 
@@ -620,34 +713,34 @@ button.primary:active {
   margin-bottom: 32px;
 }
 .memory-section h3 {
-  font-size: 17px;
+  font-size: 18px;
   font-weight: 600;
   color: #fff;
-  margin-bottom: 8px;
+  margin-bottom: 12px;
 }
 .memory-description {
-  font-size: 13px;
-  color: #888;
+  font-size: 14px;
+  color: #999;
   line-height: 1.5;
-  margin-bottom: 12px;
+  margin-bottom: 16px;
 }
 .memory-textarea {
   width: 100%;
-  background: rgba(255,255,255,0.05);
-  border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.05);
   color: #fff;
-  padding: 12px 14px;
-  border-radius: 10px;
-  font-size: 15px;
+  padding: 16px;
+  border-radius: 12px;
+  font-size: 16px;
   font-family: inherit;
   resize: vertical;
-  min-height: 120px;
-  line-height: 1.5;
+  min-height: 140px;
+  line-height: 1.6;
   transition: all 0.2s;
 }
 .memory-textarea:focus {
   outline: none;
-  background: rgba(255,255,255,0.08);
+  background: rgba(255,255,255,0.12);
   border-color: rgba(0,123,255,0.5);
 }
 .memory-textarea::placeholder {
