@@ -342,6 +342,11 @@ input, textarea { font-family: inherit; }
   display: flex;
   justify-content: center;
   transform: translateZ(0);
+  transition: padding-bottom 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+body.keyboard-open .input-container {
+  padding-bottom: 10px !important; /* Minimal padding when keyboard is up */
 }
 
 .input-wrapper {
@@ -828,7 +833,7 @@ button.primary:active {
   }
   
   .sidebar {
-    padding-top: calc(12px + env(safe-area-inset-top)) !important;
+    padding-top: env(safe-area-inset-top) !important;
     height: 100dvh !important;
   }
   

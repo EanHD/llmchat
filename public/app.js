@@ -53,6 +53,7 @@ class App {
 
       // Premium mobile UX enhancements
       await this.setupInputAutofocus();
+      this.setupKeyboardDetection();
       this.setupPullToRefreshReload();
       this.setupNewChatFAB();
       this.setupAssistantEnhancements();
@@ -143,6 +144,26 @@ class App {
       input.focus();
       try { input.setSelectionRange(input.value.length, input.value.length); } catch {}
     }, 60);
+  }
+
+  setupKeyboardDetection() {
+    const input = document.getElementById('message-input');
+    if (!input) return;
+
+    const onFocus = () => {
+      document.body.classList.add('keyboard-open');
+      // Ensure view is scrolled correctly
+      setTimeout(() => {
+        window.scrollTo(0, 0);
+      }, 100);
+    };
+
+    const onBlur = () => {
+      document.body.classList.remove('keyboard-open');
+    };
+
+    input.addEventListener('focus', onFocus);
+    input.addEventListener('blur', onBlur);
   }
 
   setupPullToRefreshReload() {
