@@ -111,19 +111,27 @@ export function createSpinner(size = 'md') {
  */
 export function createEmptyState() {
   const container = createElement('div', { className: 'empty-state' });
-  const logo = createElement('div', { className: 'empty-state-logo' }, 'K');
+  
+  // Background animation
+  const bg = createElement('div', { className: 'empty-state-bg' });
+  
   const headline = createElement('div', { className: 'empty-state-title' }, 'How can I help you today?');
+  
   const chips = createElement('div', { className: 'empty-state-chips' });
   const chipTexts = [
-    'debug this code',
-    'roast my life choices',
-    'what should I eat at 3am'
+    'explain like I’m drunk',
+    'roast my code',
+    'what car should I buy',
+    'write a python script',
+    'tell me a dark joke'
   ];
+  
   chipTexts.forEach(text => {
     const btn = createElement('button', { className: 'prompt-chip', 'data-text': text }, text);
     chips.appendChild(btn);
   });
-  container.appendChild(logo);
+  
+  container.appendChild(bg);
   container.appendChild(headline);
   container.appendChild(chips);
   return container;

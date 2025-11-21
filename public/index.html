@@ -77,20 +77,14 @@
     <!-- Main Chat Area -->
     <main id="main" class="main">
       <header id="chat-header" class="chat-header">
-        <button id="sidebar-toggle" class="icon" aria-label="Toggle sidebar">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M3 12h18M3 6h18M3 18h18"/>
-          </svg>
-        </button>
-        <h1 id="chat-title">Kai</h1>
-        <div class="header-actions">
-          <button id="user-menu-btn" class="avatar-btn" aria-label="User menu">
-            <span>K</span>
+        <div class="header-left">
+          <button id="sidebar-toggle" class="icon-btn-ghost mobile-only" aria-label="Menu">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
           </button>
-          <div id="user-menu" class="user-menu hidden" role="menu" aria-label="User menu">
-            <button class="user-menu-item" data-action="settings">Settings</button>
-            <button class="user-menu-item" data-action="logout">Logout</button>
-          </div>
+          <h1 class="app-title">Kai</h1>
+          <button id="header-new-chat-btn" class="icon-btn-ghost" aria-label="New Chat">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          </button>
         </div>
       </header>
 
@@ -102,26 +96,27 @@
 
       <!-- Floating New Chat FAB (shows when scrolled) -->
       <button id="new-chat-fab" class="fab-new-chat hidden" aria-label="New Chat">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M12 5v14M5 12h14"/>
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/>
         </svg>
       </button>
 
       <div id="input-area" class="input-container">
         <div class="input-wrapper">
-          <textarea id="message-input" placeholder="Message Kai..." rows="1" autofocus></textarea>
+          <button id="attach-btn" class="input-icon-btn" aria-label="Attach">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
+          </button>
           
-          <button id="attach-btn" class="icon-btn" title="Attach (soon)">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-          </button>
-
-          <button id="mic-btn" class="icon-btn">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
-          </button>
-
-          <button id="send-btn" class="icon-btn send-btn hidden">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-          </button>
+          <textarea id="message-input" placeholder="Ask anything..." rows="1"></textarea>
+          
+          <div class="input-actions">
+            <button id="mic-btn" class="input-icon-btn" aria-label="Voice Mode">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+            </button>
+            <button id="send-btn" class="input-icon-btn send-btn hidden" aria-label="Send">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+            </button>
+          </div>
         </div>
       </div>
     </main>
