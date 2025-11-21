@@ -12,6 +12,7 @@ export const DEFAULT_SETTINGS = {
   codeHighlighting: true,
   autoScroll: true,
   sendOnEnter: true,
+  shakeToClear: true, // Shake device to start new chat
   temperature: 0.7,
   maxTokens: null, // Use model default
   customMemory: '', // Custom instructions/memory

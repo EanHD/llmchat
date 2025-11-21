@@ -85,6 +85,32 @@ input, textarea { font-family: inherit; }
 
 .sidebar-footer { padding: 1rem; border-top: 1px solid var(--border-color); display: flex; justify-content: space-between; }
 
+/* Sidebar Icon Buttons */
+.sidebar .icon,
+.sidebar button.icon {
+  background: transparent;
+  border: none;
+  color: #888; /* Subtle gray, no white highlight */
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s;
+  padding: 0;
+}
+.sidebar .icon:hover,
+.sidebar button.icon:hover {
+  background: rgba(255,255,255,0.08);
+  color: #fff;
+}
+.sidebar .icon svg,
+.sidebar button.icon svg {
+  pointer-events: none;
+}
+
 /* Main Chat Area */
 .main { 
   flex: 1; 

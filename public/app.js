@@ -450,8 +450,11 @@ class App {
   /**
    * Setup shake-to-clear gesture
    */
-  setupShakeToClear() {
+  async setupShakeToClear() {
     if (!window.DeviceMotionEvent) return;
+
+    const settings = await storage.getAllSettings();
+    if (settings.shakeToClear === false) return; // Disabled in settings
 
     let lastShake = 0;
     let shakeThreshold = 15;
