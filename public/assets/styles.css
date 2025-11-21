@@ -46,6 +46,7 @@ html {
   height: -webkit-fill-available;
   background-color: #000000;
   overflow: hidden;
+  overscroll-behavior: none; /* Prevent bounce */
 }
 
 body {
@@ -55,6 +56,7 @@ body {
   color: var(--text-primary);
   font-family: var(--font-sans);
   overflow: hidden;
+  overscroll-behavior: none; /* Prevent bounce */
   position: fixed;
   width: 100%;
   inset: 0;
@@ -68,7 +70,7 @@ input, textarea { font-family: inherit; }
 /* Layout */
 #app { 
   display: flex; 
-  height: 100dvh; 
+  height: 100%; /* Use % inside fixed body */
   width: 100%; 
   overflow: hidden; 
   position: fixed; /* Lock the app in place */
@@ -76,6 +78,7 @@ input, textarea { font-family: inherit; }
   left: 0;
   right: 0;
   bottom: 0;
+  overscroll-behavior: none;
 }
 
 /* Sidebar */
@@ -89,7 +92,7 @@ input, textarea { font-family: inherit; }
   z-index: 50;
   padding-top: env(safe-area-inset-top);
   padding-bottom: env(safe-area-inset-bottom);
-  height: 100dvh; /* Ensure full height */
+  height: 100%; /* Fill parent */
 }
 
 .sidebar-header { padding: 1.5rem; display: flex; align-items: center; gap: 1rem; }
@@ -834,7 +837,7 @@ button.primary:active {
   
   .sidebar {
     padding-top: env(safe-area-inset-top) !important;
-    height: 100dvh !important;
+    height: 100% !important;
   }
   
   /* Compact Header for PWA */
