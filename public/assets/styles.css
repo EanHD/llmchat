@@ -40,8 +40,25 @@
 
 /* Reset */
 * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-html, body { height: 100dvh; height: -webkit-fill-available; }
-body { min-height: -webkit-fill-available; background: #000 !important; color: var(--text-primary); font-family: var(--font-sans); overflow: hidden; }
+
+html {
+  height: 100dvh;
+  height: -webkit-fill-available;
+  background-color: #000000;
+  overflow: hidden;
+}
+
+body {
+  height: 100dvh;
+  height: -webkit-fill-available;
+  background-color: #000000 !important;
+  color: var(--text-primary);
+  font-family: var(--font-sans);
+  overflow: hidden;
+  position: fixed;
+  width: 100%;
+  inset: 0;
+}
 
 /* Typography */
 h1, h2, h3 { font-weight: 700; letter-spacing: -0.02em; }
@@ -49,7 +66,13 @@ button { font-family: inherit; cursor: pointer; border: none; outline: none; }
 input, textarea { font-family: inherit; }
 
 /* Layout */
-#app { display: flex; height: 100dvh; width: 100%; overflow: hidden; }
+#app { 
+  display: flex; 
+  height: 100%; 
+  width: 100%; 
+  overflow: hidden; 
+  position: relative;
+}
 
 /* Sidebar */
 .sidebar {
@@ -307,12 +330,13 @@ input, textarea { font-family: inherit; }
   bottom: 0; left: 0; right: 0;
   padding: 16px;
   padding-bottom: env(safe-area-inset-bottom);
-  background: rgba(0,0,0,0.8); /* Darker blur */
+  background: rgba(0,0,0,0.85);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   z-index: 20;
   display: flex;
   justify-content: center;
+  transform: translateZ(0); /* Force hardware acceleration */
 }
 
 .input-wrapper {
@@ -793,20 +817,24 @@ button.primary:active {
 /* PWA Specific Adjustments for iOS Dynamic Island */
 @media (display-mode: standalone) {
   .panel-header {
-    padding-top: calc(60px + env(safe-area-inset-top)) !important;
+    padding-top: calc(12px + env(safe-area-inset-top)) !important;
+    height: auto;
   }
   
   .sidebar {
-    padding-top: calc(60px + env(safe-area-inset-top)) !important;
+    padding-top: calc(12px + env(safe-area-inset-top)) !important;
   }
   
-  /* Ensure chat header also clears it properly */
+  /* Compact Header for PWA */
   .chat-header {
-    height: calc(60px + env(safe-area-inset-top)) !important;
+    height: auto !important;
+    min-height: 50px !important;
     padding-top: env(safe-area-inset-top) !important;
+    padding-bottom: 4px !important;
+    align-items: center;
   }
   
   .chat-container {
-    padding-top: calc(60px + env(safe-area-inset-top)) !important;
+    padding-top: calc(50px + env(safe-area-inset-top)) !important;
   }
 }
