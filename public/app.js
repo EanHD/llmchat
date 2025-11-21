@@ -58,7 +58,6 @@ class App {
       this.setupNewChatFAB();
       this.setupAssistantEnhancements();
       this.setupReactionMenu();
-      this.setupMicDrunkMode();
       this.setupSendSpinner();
       this.setupPromptChips();
       this.setupUserMenu();
@@ -250,32 +249,7 @@ class App {
         const msgId = messageEl.dataset.messageId;
         await this.callRegenerateEndpoint(msgId, false);
       }
-
-      // TTS
-      if (btn.classList.contains('btn-tts')) {
-        e.stopPropagation();
-        const content = messageEl.querySelector('.message-content').innerText;
-        this.speakText(content);
-      }
     });
-  }
-
-  speakText(text) {
-    if (!window.speechSynthesis) {
-      toast.error('TTS not supported');
-      return;
-    }
-    if (window.speechSynthesis.speaking) {
-      window.speechSynthesis.cancel();
-      return;
-    }
-    const utterance = new SpeechSynthesisUtterance(text);
-    // Try to find a good voice
-    const voices = window.speechSynthesis.getVoices();
-    const preferred = voices.find(v => v.name.includes('Samantha') || v.name.includes('Google US English'));
-    if (preferred) utterance.voice = preferred;
-    
-    window.speechSynthesis.speak(utterance);
   }
 
   async callRegenerateEndpoint(messageId, force) {
@@ -357,27 +331,6 @@ class App {
     const map = { '👎': 'too long', '🤓': 'over-explaining', '💀': 'tone wrong' };
     console.log('[Feedback]', { messageId, reaction, meaning: map[reaction] || reaction });
     toast.success('Feedback noted');
-  }
-
-  setupMicDrunkMode() {
-    const mic = document.getElementById('mic-btn');
-    if (!mic) return;
-    let timer = null;
-    const activate = () => {
-      document.body.classList.toggle('drunk-mode');
-      if (document.body.classList.contains('drunk-mode')) {
-        toast.info("I'm drunk mode: bigger text, slower vibes");
-      } else {
-        toast.info('Back to normal');
-      }
-    };
-    const start = () => { timer = setTimeout(activate, 3000); };
-    const cancel = () => { clearTimeout(timer); };
-    mic.addEventListener('mousedown', start);
-    mic.addEventListener('mouseup', cancel);
-    mic.addEventListener('mouseleave', cancel);
-    mic.addEventListener('touchstart', start, { passive: true });
-    mic.addEventListener('touchend', cancel, { passive: true });
   }
 
   setupSendSpinner() {

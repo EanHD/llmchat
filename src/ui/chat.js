@@ -30,6 +30,9 @@ export class ChatUI {
     this.scrollToBottomBtn = null; // Scroll to bottom button
     this.userScrolledUp = false; // Track if user has scrolled up
     
+    this.recognition = null;
+    this.isListening = false;
+    
     this.init();
   }
 
@@ -102,11 +105,10 @@ export class ChatUI {
       });
     }
 
-    // Mic button (Placeholder)
+    // Mic button
     if (this.micBtn) {
       this.micBtn.addEventListener('click', () => {
-        // Future voice mode implementation
-        console.log('Voice mode coming soon');
+        this.toggleVoiceInput();
       });
     }
 
@@ -659,9 +661,6 @@ export class ChatUI {
       </button>
       <button class="btn-icon btn-regen" title="Regenerate" aria-label="Regenerate">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 4v6h6"/><path d="M23 20v-6h-6"/><path d="M3.51 15a9 9 0 0 0 14.85 3.36L23 14"/><path d="M1 10l4.64-4.36A9 9 0 0 1 20.49 9"/></svg>
-      </button>
-      <button class="btn-icon btn-tts" title="Speak" aria-label="Speak">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
       </button>`;
     contentEl.appendChild(actions);
   }
@@ -733,6 +732,77 @@ export class ChatUI {
       if (this.scrollToBottomBtn) {
         this.scrollToBottomBtn.style.display = 'none';
       }
+    }
+  }
+
+  toggleVoiceInput() {
+    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
+      this.showToast('Speech recognition not supported');
+      return;
+    }
+
+    if (this.isListening) {
+      this.stopListening();
+    } else {
+      this.startListening();
+    }
+  }
+
+  startListening() {
+    if (!this.recognition) {
+      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+      this.recognition = new SpeechRecognition();
+      this.recognition.continuous = false;
+      this.recognition.interimResults = true;
+      this.recognition.lang = 'en-US';
+
+      this.recognition.onstart = () => {
+        this.isListening = true;
+        this.micBtn.classList.add('listening');
+        // Change to stop icon (square or X)
+        this.micBtn.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="6" width="12" height="12" rx="2" fill="currentColor"/></svg>';
+      };
+
+      this.recognition.onend = () => {
+        this.isListening = false;
+        this.micBtn.classList.remove('listening');
+        // Back to mic icon
+        this.micBtn.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>';
+      };
+
+      this.recognition.onresult = (event) => {
+        let finalTranscript = '';
+
+        for (let i = event.resultIndex; i < event.results.length; ++i) {
+          if (event.results[i].isFinal) {
+            finalTranscript += event.results[i][0].transcript;
+          }
+        }
+
+        if (finalTranscript) {
+          const currentVal = this.messageInput.value;
+          const prefix = currentVal && !currentVal.endsWith(' ') ? ' ' : '';
+          this.messageInput.value = currentVal + prefix + finalTranscript;
+          this.adjustTextareaHeight();
+          this.toggleInputButtons();
+        }
+      };
+      
+      this.recognition.onerror = (event) => {
+        console.error('Speech recognition error', event.error);
+        this.stopListening();
+        if (event.error === 'not-allowed') {
+            this.showToast('Microphone access denied');
+        }
+      };
+    }
+
+    this.recognition.start();
+  }
+
+  stopListening() {
+    if (this.recognition) {
+      this.recognition.stop();
     }
   }
 }
