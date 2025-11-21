@@ -40,7 +40,8 @@
 
 /* Reset */
 * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-html, body { height: 100%; overflow: hidden; background: var(--bg-primary); color: var(--text-primary); font-family: var(--font-sans); }
+html, body { height: 100dvh; height: -webkit-fill-available; }
+body { min-height: -webkit-fill-available; background: #000 !important; color: var(--text-primary); font-family: var(--font-sans); overflow: hidden; }
 
 /* Typography */
 h1, h2, h3 { font-weight: 700; letter-spacing: -0.02em; }
@@ -48,7 +49,7 @@ button { font-family: inherit; cursor: pointer; border: none; outline: none; }
 input, textarea { font-family: inherit; }
 
 /* Layout */
-#app { display: flex; height: 100dvh; width: 100%; }
+#app { display: flex; height: 100dvh; width: 100%; overflow: hidden; }
 
 /* Sidebar */
 .sidebar {
@@ -59,6 +60,8 @@ input, textarea { font-family: inherit; }
   flex-direction: column;
   transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
   z-index: 50;
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
 .sidebar-header { padding: 1.5rem; display: flex; align-items: center; gap: 1rem; }
@@ -83,7 +86,15 @@ input, textarea { font-family: inherit; }
 .sidebar-footer { padding: 1rem; border-top: 1px solid var(--border-color); display: flex; justify-content: space-between; }
 
 /* Main Chat Area */
-.main { flex: 1; display: flex; flex-direction: column; position: relative; background: var(--bg-primary); }
+.main { 
+  flex: 1; 
+  display: flex; 
+  flex-direction: column; 
+  position: relative; 
+  background: var(--bg-primary); 
+  height: 100dvh;
+  overflow: hidden;
+}
 
 /* Header */
 .chat-header {
@@ -92,6 +103,7 @@ input, textarea { font-family: inherit; }
   display: flex;
   align-items: center;
   padding: 0 1.5rem;
+  padding-top: env(safe-area-inset-top);
   z-index: 10;
   pointer-events: none; /* Let clicks pass through to messages */
 }
@@ -112,7 +124,7 @@ input, textarea { font-family: inherit; }
 
 .icon-btn-ghost {
   background: transparent;
-  color: var(--text-secondary);
+  color: #888; /* Pure subtle gray */
   width: 40px; height: 40px;
   border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
@@ -124,8 +136,8 @@ input, textarea { font-family: inherit; }
 .chat-container {
   flex: 1;
   overflow-y: auto;
-  padding-top: 80px; /* Space for header */
-  padding-bottom: 120px; /* Space for input */
+  padding-top: calc(60px + env(safe-area-inset-top)); /* Space for header */
+  padding-bottom: calc(100px + env(safe-area-inset-bottom)); /* Space for input */
   scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
 }
@@ -172,8 +184,8 @@ input, textarea { font-family: inherit; }
   position: absolute;
   bottom: 0; left: 0; right: 0;
   padding: 16px;
-  padding-bottom: max(16px, env(safe-area-inset-bottom));
-  background: rgba(0,0,0,0.6);
+  padding-bottom: env(safe-area-inset-bottom);
+  background: rgba(0,0,0,0.8); /* Darker blur */
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   z-index: 20;
@@ -187,11 +199,12 @@ input, textarea { font-family: inherit; }
   background: #1a1a1a; /* Dark grey pill */
   border: 1px solid rgba(255,255,255,0.1);
   border-radius: 28px; /* Pill shape */
-  padding: 8px 8px 8px 16px;
+  padding: 8px 16px;
   display: flex;
-  align-items: flex-end;
+  align-items: center; /* Vertically centered */
   gap: 12px;
   transition: border-color 0.2s;
+  min-height: 56px;
 }
 
 .input-wrapper:focus-within {
@@ -208,6 +221,7 @@ input, textarea { font-family: inherit; }
   max-height: 150px;
   resize: none;
   line-height: 1.5;
+  align-self: center;
 }
 #message-input::placeholder { color: #666; }
 #message-input:focus { outline: none; }
@@ -216,7 +230,7 @@ input, textarea { font-family: inherit; }
   width: 36px; height: 36px;
   border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
-  color: #888;
+  color: #888; /* Pure subtle gray */
   background: transparent;
   transition: all 0.2s;
   flex-shrink: 0;
@@ -229,7 +243,7 @@ input, textarea { font-family: inherit; }
   color: #fff !important;
 }
 .send-btn:hover { background: var(--accent-hover) !important; }
-.send-btn.hidden { display: none; }
+.send-btn.hidden { display: none !important; }
 
 /* Empty State */
 .empty-state {
@@ -306,6 +320,9 @@ input, textarea { font-family: inherit; }
   .sidebar {
     position: fixed; top: 0; left: 0; bottom: 0;
     transform: translateX(-100%);
+    width: 80%;
+    max-width: 320px;
+    box-shadow: 10px 0 50px rgba(0,0,0,0.5);
   }
   .sidebar.open { transform: translateX(0); }
   
@@ -313,7 +330,7 @@ input, textarea { font-family: inherit; }
   .empty-state-title { font-size: 32px; }
   
   .input-container { padding: 12px; padding-bottom: max(12px, env(safe-area-inset-bottom)); }
-  .input-wrapper { padding: 6px 6px 6px 14px; }
+  .input-wrapper { padding: 6px 12px; }
 }
 
 @media (min-width: 769px) {
@@ -329,6 +346,27 @@ input, textarea { font-family: inherit; }
 @keyframes pulse {
   0%, 100% { transform: scale(1); opacity: 0.5; }
   50% { transform: scale(1.1); opacity: 0.8; }
+}
+
+/* Thinking Dots */
+.thinking-dots {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+  height: 24px;
+}
+.thinking-dot {
+  width: 6px; height: 6px;
+  background: #fff;
+  border-radius: 50%;
+  animation: bounce 1.4s infinite ease-in-out both;
+}
+.thinking-dot:nth-child(1) { animation-delay: -0.32s; }
+.thinking-dot:nth-child(2) { animation-delay: -0.16s; }
+
+@keyframes bounce {
+  0%, 80%, 100% { transform: scale(0); }
+  40% { transform: scale(1); }
 }
 
 /* Markdown & Code */
@@ -348,6 +386,7 @@ pre code { background: transparent; padding: 0; }
   transition: transform 0.3s;
   z-index: 100;
   padding: 20px;
+  padding-top: calc(20px + env(safe-area-inset-top));
 }
 .settings-panel:not(.hidden) { transform: translateX(0); }
 
@@ -371,5 +410,7 @@ pre code { background: transparent; padding: 0; }
   background: rgba(255,255,255,0.05);
   display: flex; align-items: center; justify-content: center;
   transition: transform 0.2s;
+  border: none;
+  color: #fff;
 }
 .reaction-emoji:hover { transform: scale(1.2); background: rgba(255,255,255,0.1); }

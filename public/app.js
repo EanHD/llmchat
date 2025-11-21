@@ -139,71 +139,39 @@ class App {
     const messagesEl = document.getElementById('messages');
     if (!messagesEl) return;
 
-    const enhanceMessage = (el) => {
-      if (!el.classList || !el.classList.contains('message') || !el.classList.contains('assistant')) return;
-      if (el.dataset.enhanced === '1') return;
-      const content = el.querySelector('.message-content');
-      if (!content) return;
+    // Event delegation for actions
+    messagesEl.addEventListener('click', async (e) => {
+      const btn = e.target.closest('.btn-icon');
+      if (!btn) return;
 
-      // Actions bar (copy + regen)
-      const actions = document.createElement('div');
-      actions.className = 'assistant-actions';
-      actions.innerHTML = `
-        <button class="btn-icon btn-copy" title="Copy" aria-label="Copy">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-        </button>
-        <button class="btn-icon btn-regen" title="Regenerate" aria-label="Regenerate">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 4v6h6"/><path d="M23 20v-6h-6"/><path d="M3.51 15a9 9 0 0 0 14.85 3.36L23 14"/><path d="M1 10l4.64-4.36A9 9 0 0 1 20.49 9"/></svg>
-        </button>`;
-      content.appendChild(actions);
+      const messageEl = btn.closest('.message');
+      if (!messageEl) return;
 
-      // Copy handler
-      const copyBtn = actions.querySelector('.btn-copy');
-      copyBtn.addEventListener('click', async (e) => {
+      const content = messageEl.querySelector('.message-content');
+
+      // Copy
+      if (btn.classList.contains('btn-copy')) {
         e.stopPropagation();
         try {
+          // Get text content without the actions div
           const clone = content.cloneNode(true);
-          const tool = clone.querySelector('.assistant-actions');
-          if (tool) tool.remove();
+          const actions = clone.querySelector('.assistant-actions');
+          if (actions) actions.remove();
           await navigator.clipboard.writeText(clone.innerText.trim());
           toast.success('Copied');
         } catch (err) {
           console.error('Copy failed', err);
           toast.error('Copy failed');
         }
-      });
+      }
 
-      // Regenerate handler with double-tap support
-      let lastTap = 0;
-      const regenBtn = actions.querySelector('.btn-regen');
-      regenBtn.addEventListener('click', async (e) => {
+      // Regenerate
+      if (btn.classList.contains('btn-regen')) {
         e.stopPropagation();
-        const now = Date.now();
-        const isDouble = now - lastTap < 300;
-        lastTap = now;
-        const msgId = el.dataset.messageId;
-        await this.callRegenerateEndpoint(msgId, isDouble);
-      });
-
-      // On mobile tap, toggle actions bar visibility
-      el.addEventListener('touchstart', () => {
-        actions.classList.add('show');
-        setTimeout(() => actions.classList.remove('show'), 1600);
-      }, { passive: true });
-
-      el.dataset.enhanced = '1';
-    };
-
-    // Initial pass
-    Array.from(messagesEl.children).forEach(enhanceMessage);
-
-    // Observe for new messages
-    const observer = new MutationObserver((mutations) => {
-      for (const m of mutations) {
-        m.addedNodes.forEach(node => enhanceMessage(node));
+        const msgId = messageEl.dataset.messageId;
+        await this.callRegenerateEndpoint(msgId, false);
       }
     });
-    observer.observe(messagesEl, { childList: true });
   }
 
   async callRegenerateEndpoint(messageId, force) {
