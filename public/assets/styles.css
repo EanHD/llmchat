@@ -789,3 +789,24 @@ button.primary:active {
   color: #fff;
 }
 .reaction-emoji:hover { transform: scale(1.2); background: rgba(255,255,255,0.1); }
+
+/* PWA Specific Adjustments for iOS Dynamic Island */
+@media (display-mode: standalone) {
+  .panel-header {
+    padding-top: calc(60px + env(safe-area-inset-top)) !important;
+  }
+  
+  .sidebar {
+    padding-top: calc(60px + env(safe-area-inset-top)) !important;
+  }
+  
+  /* Ensure chat header also clears it properly */
+  .chat-header {
+    height: calc(60px + env(safe-area-inset-top)) !important;
+    padding-top: env(safe-area-inset-top) !important;
+  }
+  
+  .chat-container {
+    padding-top: calc(60px + env(safe-area-inset-top)) !important;
+  }
+}
