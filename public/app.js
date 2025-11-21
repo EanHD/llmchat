@@ -250,7 +250,32 @@ class App {
         const msgId = messageEl.dataset.messageId;
         await this.callRegenerateEndpoint(msgId, false);
       }
+
+      // TTS
+      if (btn.classList.contains('btn-tts')) {
+        e.stopPropagation();
+        const content = messageEl.querySelector('.message-content').innerText;
+        this.speakText(content);
+      }
     });
+  }
+
+  speakText(text) {
+    if (!window.speechSynthesis) {
+      toast.error('TTS not supported');
+      return;
+    }
+    if (window.speechSynthesis.speaking) {
+      window.speechSynthesis.cancel();
+      return;
+    }
+    const utterance = new SpeechSynthesisUtterance(text);
+    // Try to find a good voice
+    const voices = window.speechSynthesis.getVoices();
+    const preferred = voices.find(v => v.name.includes('Samantha') || v.name.includes('Google US English'));
+    if (preferred) utterance.voice = preferred;
+    
+    window.speechSynthesis.speak(utterance);
   }
 
   async callRegenerateEndpoint(messageId, force) {
