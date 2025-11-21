@@ -1,11 +1,11 @@
 {
-  "name": "LLM Chat",
-  "short_name": "LLM Chat",
-  "description": "Minimal chat interface for AI models",
+  "name": "Kai",
+  "short_name": "Kai",
+  "description": "Your private AI companion — powered by local models",
   "start_url": "./",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#2563eb",
+  "background_color": "#0f0f18",
+  "theme_color": "#0f0f18",
   "orientation": "portrait-primary",
   "icons": [
     {

@@ -10,8 +10,6 @@ import { Message, MessageStatus, MessageRole } from '../models/message.js';
 import { Conversation } from '../models/conversation.js';
 import { createMessageBubble, createEmptyState, createSpinner } from './components.js';
 import { markdownRenderer } from './markdown.js';
-import { TextToSpeech } from './tts.js';
-import { VoiceRecorder } from './voice.js';
 import { $, clearElement } from '../utils/dom.js';
 import { generateTitle } from '../utils/format.js';
 
@@ -20,8 +18,9 @@ export class ChatUI {
     this.messagesContainer = $('#messages');
     this.chatContainer = $('#chat-container');
     this.messageInput = $('#message-input');
-    this.messageForm = $('#message-form');
     this.sendBtn = $('#send-btn');
+    this.micBtn = $('#mic-btn');
+    this.attachBtn = $('#attach-btn');
     this.chatTitle = $('#chat-title');
     
     this.apiClient = null;
@@ -30,13 +29,6 @@ export class ChatUI {
     this.scrollToBottomBtn = null; // Scroll to bottom button
     this.userScrolledUp = false; // Track if user has scrolled up
     
-    // TTS and Voice
-    this.tts = new TextToSpeech();
-    this.voiceRecorder = new VoiceRecorder((transcription) => {
-      // Auto-focus on input after transcription
-      this.messageInput.focus();
-    });
-
     this.init();
   }
 
@@ -44,7 +36,7 @@ export class ChatUI {
    * Initialize chat UI
    */
   async init() {
-    // Set up event listeners FIRST, before any async operations
+    // Set up event listeners FIRST
     this.setupEventListeners();
     
     // Create scroll to bottom button
@@ -57,7 +49,6 @@ export class ChatUI {
     // Ensure API endpoint has protocol
     if (!apiEndpoint.startsWith('http://') && !apiEndpoint.startsWith('https://')) {
       apiEndpoint = 'https://' + apiEndpoint;
-      // Save corrected endpoint
       await storage.saveSetting('apiEndpoint', apiEndpoint);
     }
     
@@ -72,59 +63,56 @@ export class ChatUI {
 
     // Show empty state initially
     this.showEmptyState();
+    
+    // Initial input state check
+    this.toggleInputButtons();
   }
 
   /**
    * Set up event listeners
    */
   setupEventListeners() {
-    console.log('[ChatUI] setupEventListeners called');
-    console.log('[ChatUI] messageForm:', this.messageForm);
-    console.log('[ChatUI] messageInput:', this.messageInput);
-    
-    // Form submission / stop streaming
-    if (!this.messageForm) {
-      console.error('Message form not found - event listeners cannot be attached');
-      return;
-    }
-    
-    console.log('[ChatUI] Attaching form submit listener');
-    
-    this.messageForm.addEventListener('submit', (e) => {
-      console.log('[ChatUI] Form submit event fired');
-      e.preventDefault();
-      console.log('[ChatUI] Default prevented');
-      
-      // If currently streaming, stop it
-      if (state.getState('isStreaming')) {
-        console.log('[ChatUI] Currently streaming, stopping');
-        this.stopStreaming();
-      } else {
-        console.log('[ChatUI] Calling handleSendMessage');
-        this.handleSendMessage();
-      }
-    });
-
-    // Auto-resize textarea
+    // Input handling
     if (this.messageInput) {
       this.messageInput.addEventListener('input', () => {
-        this.messageInput.style.height = 'auto';
-        this.messageInput.style.height = `${this.messageInput.scrollHeight}px`;
+        this.adjustTextareaHeight();
+        this.toggleInputButtons();
       });
 
-      // Enter to send (without shift)
       this.messageInput.addEventListener('keydown', async (e) => {
         const settings = await storage.getAllSettings();
         if (e.key === 'Enter' && !e.shiftKey && settings.sendOnEnter !== false) {
           e.preventDefault();
-          
-          // If streaming, don't send new message
-          if (state.getState('isStreaming')) {
-            return;
-          }
-          
+          if (state.getState('isStreaming')) return;
           this.handleSendMessage();
         }
+      });
+    }
+
+    // Send button
+    if (this.sendBtn) {
+      this.sendBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (state.getState('isStreaming')) {
+          this.stopStreaming();
+        } else {
+          this.handleSendMessage();
+        }
+      });
+    }
+
+    // Mic button (Placeholder)
+    if (this.micBtn) {
+      this.micBtn.addEventListener('click', () => {
+        // Future voice mode implementation
+        console.log('Voice mode coming soon');
+      });
+    }
+
+    // Attach button (Placeholder)
+    if (this.attachBtn) {
+      this.attachBtn.addEventListener('click', () => {
+        this.showToast('Attachments coming soon');
       });
     }
     
@@ -132,6 +120,118 @@ export class ChatUI {
     this.chatContainer.addEventListener('scroll', () => {
       this.handleScroll();
     });
+
+    // Pull to refresh (New Chat)
+    this.setupPullToRefresh();
+  }
+
+  adjustTextareaHeight() {
+    this.messageInput.style.height = 'auto';
+    this.messageInput.style.height = Math.min(this.messageInput.scrollHeight, 140) + 'px';
+  }
+
+  toggleInputButtons() {
+    const hasText = this.messageInput.value.trim().length > 0;
+    if (hasText) {
+      this.micBtn.style.display = 'none';
+      this.sendBtn.classList.remove('hidden');
+      this.sendBtn.style.display = 'flex';
+      // Small animation for send button appearance
+      requestAnimationFrame(() => {
+        this.sendBtn.style.opacity = '1';
+        this.sendBtn.style.transform = 'scale(1)';
+      });
+    } else {
+      this.sendBtn.style.opacity = '0';
+      this.sendBtn.style.transform = 'scale(0.8)';
+      setTimeout(() => {
+        if (this.messageInput.value.trim().length === 0) {
+          this.sendBtn.classList.add('hidden');
+          this.sendBtn.style.display = 'none';
+          this.micBtn.style.display = 'flex';
+        }
+      }, 200);
+    }
+  }
+
+  setupPullToRefresh() {
+    let startY = 0;
+    let refreshing = false;
+    const threshold = 150; // Pull distance to trigger
+
+    this.chatContainer.addEventListener('touchstart', (e) => {
+      if (this.chatContainer.scrollTop === 0) {
+        startY = e.touches[0].pageY;
+      }
+    }, { passive: true });
+
+    this.chatContainer.addEventListener('touchmove', (e) => {
+      const y = e.touches[0].pageY;
+      const pullDistance = y - startY;
+
+      if (this.chatContainer.scrollTop === 0 && pullDistance > 0 && !refreshing) {
+        // Visual feedback could be added here (e.g., pulling down an icon)
+      }
+    }, { passive: true });
+
+    this.chatContainer.addEventListener('touchend', (e) => {
+      const y = e.changedTouches[0].pageY;
+      const pullDistance = y - startY;
+
+      if (this.chatContainer.scrollTop === 0 && pullDistance > threshold && !refreshing) {
+        refreshing = true;
+        this.triggerNewChat();
+        setTimeout(() => { refreshing = false; }, 1000);
+      }
+    });
+  }
+
+  async triggerNewChat() {
+    // Haptic feedback
+    if (navigator.vibrate) navigator.vibrate(50);
+    
+    // Reset state
+    state.setCurrentConversation(null);
+    state.setMessages([]);
+    this.showEmptyState();
+    this.showToast('New Chat Started');
+  }
+
+  showToast(message) {
+    const toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.textContent = message;
+    toast.style.cssText = `
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.8);
+      color: white;
+      padding: 8px 16px;
+      border-radius: 20px;
+      z-index: 1000;
+      font-size: 14px;
+      backdrop-filter: blur(10px);
+      animation: fadeInOut 2s ease forwards;
+    `;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 2000);
+    
+    // Add keyframes if not exists
+    if (!document.getElementById('toast-style')) {
+      const style = document.createElement('style');
+      style.id = 'toast-style';
+      style.textContent = `
+        @keyframes fadeInOut {
+          0% { opacity: 0; transform: translate(-50%, -20px); }
+          10% { opacity: 1; transform: translate(-50%, 0); }
+          90% { opacity: 1; transform: translate(-50%, 0); }
+          100% { opacity: 0; transform: translate(-50%, -20px); }
+        }
+      `;
+      document.head.appendChild(style);
+    }
   }
   
   /**
@@ -201,19 +301,19 @@ export class ChatUI {
    * Handle send message
    */
   async handleSendMessage() {
-    console.log('[ChatUI] handleSendMessage called');
     const content = this.messageInput.value.trim();
-    console.log('[ChatUI] Message content:', content);
-    console.log('[ChatUI] isSubmitting:', this.isSubmitting);
     
     if (!content || this.isSubmitting) {
-      console.log('[ChatUI] Returning early - no content or already submitting');
       return;
+    }
+
+    // Haptic feedback
+    if (navigator.vibrate) {
+      navigator.vibrate(5);
     }
 
     this.isSubmitting = true;
     this.updateSendButton(true);
-    console.log('[ChatUI] Starting message send process');
 
     try {
       // Get or create conversation
@@ -252,7 +352,8 @@ export class ChatUI {
 
       // Clear input
       this.messageInput.value = '';
-      this.messageInput.style.height = 'auto';
+      this.adjustTextareaHeight();
+      this.toggleInputButtons();
 
       // Create assistant message (pending)
       const assistantMessage = Message.createAssistantMessage(conversationId);
@@ -261,14 +362,11 @@ export class ChatUI {
         await storage.saveMessage(assistantMessage.toJSON());
       } catch (storageError) {
         console.error('Failed to save assistant placeholder:', storageError);
-        // Continue anyway - will be saved after response
       }
       
       state.addMessage(assistantMessage.toJSON());
 
-      // Don't scroll here - will scroll after render
-
-      // Get conversation history from STATE (not storage) to avoid race conditions
+      // Get conversation history from STATE
       const stateMessages = state.getState('messages');
       const apiMessages = stateMessages
         .filter(m => m.role !== 'system' && m.status === MessageStatus.COMPLETE)
@@ -287,14 +385,13 @@ export class ChatUI {
         await this.fetchResponse(assistantMessage, apiMessages, settings);
       }
 
-      // Update conversation metadata using current message count from state
+      // Update conversation metadata
       const currentMessages = state.getState('messages');
       const conversation = await storage.getConversation(conversationId);
       if (conversation) {
         conversation.messageCount = currentMessages.length;
         conversation.updatedAt = Date.now();
         
-        // Auto-generate title from first user message if still "New Chat"
         if (conversation.title === 'New Chat' && currentMessages.length >= 2) {
           const firstUserMsg = currentMessages.find(m => m.role === MessageRole.USER);
           if (firstUserMsg) {
@@ -304,27 +401,21 @@ export class ChatUI {
         
         try {
           await storage.saveConversation(conversation);
-          
-          // Update conversations list to reflect new title
           const conversations = await storage.getAllConversations();
           state.setConversations(conversations);
         } catch (storageError) {
           console.error('Failed to update conversation metadata:', storageError);
-          // Non-critical, continue
         }
       }
 
-      // Scroll to bottom
       this.scrollToBottom();
 
     } catch (error) {
       console.error('Failed to send message:', error);
       
-      // Show user-friendly error message
       const userMessage = error.message || 'An unexpected error occurred';
       state.setError(userMessage);
       
-      // Update assistant message to error state
       const messages = state.getState('messages');
       const lastMessage = messages[messages.length - 1];
       if (lastMessage && lastMessage.role === MessageRole.ASSISTANT) {
@@ -344,7 +435,6 @@ export class ChatUI {
    * Fetch response (non-streaming)
    */
   async fetchResponse(assistantMessage, apiMessages, settings) {
-    // Ensure model is always set
     const modelToUse = settings.model || 'granite-local';
     
     const response = await this.apiClient.sendMessage(apiMessages, {
@@ -353,7 +443,6 @@ export class ChatUI {
       maxTokens: settings.maxTokens
     });
 
-    // Update assistant message with response
     const responseContent = response.choices[0].message.content;
     assistantMessage.updateContent(responseContent);
     assistantMessage.updateStatus(MessageStatus.COMPLETE);
@@ -370,30 +459,20 @@ export class ChatUI {
    * Stream response (streaming)
    */
   async streamResponse(assistantMessage, apiMessages, settings) {
-    console.log('[ChatUI] streamResponse called with settings:', settings);
-    // Update message status first, BEFORE setting streaming flag
-    // This allows the initial render to happen with the assistant placeholder
     assistantMessage.updateStatus(MessageStatus.STREAMING);
     state.updateMessage(assistantMessage.id, assistantMessage.toJSON());
     
-    // NOW set streaming to prevent subsequent full re-renders
     state.setStreaming(true);
 
     let lastSaveTime = Date.now();
     let lastRenderTime = Date.now();
-    const SAVE_INTERVAL = 2000; // Save every 2 seconds during streaming
-    const RENDER_INTERVAL = 100; // Update UI every 100ms max
+    const SAVE_INTERVAL = 2000;
+    const RENDER_INTERVAL = 100;
     
-    // Create AbortController for cancellation
     this.abortController = new AbortController();
 
     try {
-      console.log('[ChatUI] Settings:', settings);
-      console.log('[ChatUI] Creating stream with model:', settings.model || 'granite-local');
-      
-      // Ensure model is always set
       const modelToUse = settings.model || 'granite-local';
-      console.log('[ChatUI] Using model:', modelToUse);
       
       const stream = this.apiClient.streamMessage(apiMessages, {
         model: modelToUse,
@@ -402,22 +481,15 @@ export class ChatUI {
         signal: this.abortController.signal
       });
       
-      console.log('[ChatUI] Stream created, starting iteration');
-
       for await (const delta of stream) {
-        console.log('[ChatUI] Received delta:', delta);
         if (delta.content) {
-          console.log('[ChatUI] Delta content:', delta.content);
           assistantMessage.appendContent(delta.content);
           
           const now = Date.now();
           
-          // Debounced UI update - only render every 100ms
           if (now - lastRenderTime >= RENDER_INTERVAL) {
-            // Update DOM directly without triggering full re-render
             await this.updateMessageContent(assistantMessage.id, assistantMessage.content);
             
-            // Auto-scroll during streaming only if user is at bottom
             if (this.isAtBottom()) {
               this.scrollToBottom();
             }
@@ -425,20 +497,17 @@ export class ChatUI {
             lastRenderTime = now;
           }
           
-          // Periodic save to prevent data loss
           if (now - lastSaveTime >= SAVE_INTERVAL) {
             try {
               await storage.saveMessage(assistantMessage.toJSON());
               lastSaveTime = now;
             } catch (saveError) {
               console.error('Failed to save streaming message:', saveError);
-              // Continue streaming even if save fails
             }
           }
         }
       }
 
-      // Final update and save
       await this.updateMessageContent(assistantMessage.id, assistantMessage.content);
       assistantMessage.updateStatus(MessageStatus.COMPLETE);
       await storage.saveMessage(assistantMessage.toJSON());
@@ -447,7 +516,6 @@ export class ChatUI {
     } catch (error) {
       console.error('Streaming error:', error);
       
-      // Check if it was cancelled by user
       if (error.name === 'AbortError' || error.message.includes('aborted')) {
         assistantMessage.updateStatus(MessageStatus.ERROR);
         assistantMessage.content += '\n\n[Streaming stopped by user]';
@@ -464,7 +532,6 @@ export class ChatUI {
       
       state.updateMessage(assistantMessage.id, assistantMessage.toJSON());
       
-      // Only re-throw if not a user cancellation
       if (error.name !== 'AbortError' && !error.message.includes('aborted')) {
         throw error;
       }
@@ -487,10 +554,7 @@ export class ChatUI {
    * Render messages
    */
   async renderMessages(messages) {
-    // During streaming, don't re-render - updates are handled in streamResponse
-    // UNLESS the container is empty (initial render after adding messages)
     if (state.getState('isStreaming')) {
-      // Only skip if messages are already rendered
       if (this.messagesContainer.children.length > 0) {
         return;
       }
@@ -501,7 +565,6 @@ export class ChatUI {
       return;
     }
 
-    // Remove empty state if present
     const emptyState = this.messagesContainer.querySelector('.empty-state');
     if (emptyState) {
       emptyState.remove();
@@ -510,7 +573,6 @@ export class ChatUI {
     const settings = await storage.getAllSettings();
     const markdownEnabled = settings.markdown !== false;
 
-    // Get existing message elements map
     const existingElements = new Map();
     Array.from(this.messagesContainer.children).forEach(el => {
       if (el.dataset.messageId) {
@@ -518,9 +580,7 @@ export class ChatUI {
       }
     });
 
-    // Keep track of processed IDs to remove stale ones later
     const processedIds = new Set();
-    let lastMessageEl = null;
 
     for (const message of messages) {
       processedIds.add(message.id);
@@ -528,93 +588,38 @@ export class ChatUI {
       let isNew = false;
 
       if (!messageBubble) {
-        // Create new bubble
         messageBubble = createMessageBubble(message);
         isNew = true;
-        // Only append if new
         this.messagesContainer.appendChild(messageBubble);
       } else {
-        // Update existing bubble status/classes if needed
         if (message.status && !messageBubble.classList.contains(message.status)) {
-          // Remove old status classes
           messageBubble.classList.remove(MessageStatus.SENDING, MessageStatus.SENT, MessageStatus.ERROR, MessageStatus.STREAMING);
           if (message.status) messageBubble.classList.add(message.status);
         }
       }
 
-      // Render content
       const contentEl = messageBubble.querySelector('.message-content');
       if (contentEl) {
-        // Only update content if it's different or new
-        // For streaming, we might want to be careful, but streamResponse handles its own updates
-        // This is mostly for history loading or non-streaming updates
         if (isNew || !state.getState('isStreaming')) {
           if (markdownEnabled && message.role === 'assistant' && message.content) {
-             // Only re-render markdown if content length changed significantly or it's new
-             // This is a simple heuristic to avoid re-rendering complex markdown on every small state change
-             const currentHTML = contentEl.innerHTML;
-             // If it's a new message or we are not streaming, render.
-             // If we ARE streaming, streamResponse handles it, so we might skip this?
-             // But renderMessages is called on load.
-             
-             // Just render it. The diffing above prevents DOM thrashing of the container.
              contentEl.innerHTML = markdownRenderer.render(message.content);
              markdownRenderer.setupCopyButtons(contentEl);
-             
-             // Re-add TTS button
-             if (!contentEl.querySelector('.tts-btn')) {
-                const ttsBtn = document.createElement('button');
-                ttsBtn.className = 'tts-btn';
-                ttsBtn.setAttribute('aria-label', 'Read aloud');
-                ttsBtn.setAttribute('title', 'Read aloud');
-                ttsBtn.innerHTML = '<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>';
-                
-                ttsBtn.addEventListener('click', () => {
-                  this.tts.toggle(message.content, message.id);
-                });
-                contentEl.appendChild(ttsBtn);
-             }
+             // TTS button removed
           } else {
-            // Text content update
             if (contentEl.textContent !== message.content) {
                contentEl.textContent = message.content || (message.status === 'streaming' ? '' : '...');
-               
-               // Re-add TTS for non-markdown assistant messages
-               if (message.role === 'assistant' && !markdownEnabled) {
-                 const ttsBtn = document.createElement('button');
-                 ttsBtn.className = 'tts-btn';
-                 // ... (simplified for brevity, usually handled in createMessageBubble)
-                 // But createMessageBubble adds it to messageContent. 
-                 // If we overwrite textContent, we lose the button.
-                 // So we need to re-append it.
-                 if (message.content) {
-                    // Re-create TTS button logic or just let createMessageBubble handle it for new ones
-                    // For existing ones, we might lose the button if we just set textContent.
-                    // Let's just re-run createMessageBubble logic for simplicity if content changed
-                    // Or better:
-                    const ttsBtn = messageBubble.querySelector('.tts-btn');
-                    if (ttsBtn) contentEl.appendChild(ttsBtn);
-                 }
-               }
             }
           }
         }
       }
-
-      // Do NOT re-append existing elements to avoid layout thrashing
-      // this.messagesContainer.appendChild(messageBubble);
-      lastMessageEl = messageBubble;
     }
 
-    // Remove messages that are no longer in the list
     existingElements.forEach((el, id) => {
       if (!processedIds.has(id)) {
         el.remove();
       }
     });
 
-    // Force scroll to bottom only if we added new messages at the end
-    // or if we are loading a conversation
     if (!state.getState('isStreaming')) {
        this.scrollToBottom(true);
     }
@@ -636,22 +641,7 @@ export class ChatUI {
     if (markdownEnabled) {
       contentEl.innerHTML = markdownRenderer.render(content || '');
       markdownRenderer.setupCopyButtons(contentEl);
-      
-      // Re-add TTS button after markdown render
-      let ttsBtn = contentEl.querySelector('.tts-btn');
-      if (!ttsBtn) {
-        ttsBtn = document.createElement('button');
-        ttsBtn.className = 'tts-btn';
-        ttsBtn.setAttribute('aria-label', 'Read aloud');
-        ttsBtn.setAttribute('title', 'Read aloud');
-        ttsBtn.innerHTML = '<svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M11 5L6 9H2v6h4l5 4V5z"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>';
-        
-        ttsBtn.addEventListener('click', () => {
-          this.tts.toggle(content, messageId);
-        });
-        
-        contentEl.appendChild(ttsBtn);
-      }
+      // TTS button removed
     } else {
       contentEl.textContent = content || '';
     }
@@ -661,21 +651,20 @@ export class ChatUI {
    * Handle streaming state changes
    */
   handleStreamingState(isStreaming) {
-    const sendIcon = document.getElementById('send-icon');
-    const stopIcon = document.getElementById('stop-icon');
+    // Update UI for streaming state if needed
+    // Note: Send button is now handled by toggleInputButtons mostly, 
+    // but we might want to show a stop button.
+    // For now, we'll just let the send button be the stop button if streaming.
     
     if (isStreaming) {
-      // Show stop icon, hide send icon
-      if (sendIcon) sendIcon.style.display = 'none';
-      if (stopIcon) stopIcon.style.display = 'block';
-      this.sendBtn.setAttribute('aria-label', 'Stop streaming');
-      this.sendBtn.title = 'Stop streaming';
+      this.sendBtn.innerHTML = '<svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2" fill="currentColor"/></svg>';
+      this.sendBtn.classList.remove('hidden');
+      this.sendBtn.style.display = 'flex';
+      this.sendBtn.style.opacity = '1';
+      this.micBtn.style.display = 'none';
     } else {
-      // Show send icon, hide stop icon
-      if (sendIcon) sendIcon.style.display = 'block';
-      if (stopIcon) stopIcon.style.display = 'none';
-      this.sendBtn.setAttribute('aria-label', 'Send message');
-      this.sendBtn.title = 'Send message';
+      this.sendBtn.innerHTML = '<svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>';
+      this.toggleInputButtons(); // Reset to correct state
     }
   }
 
@@ -697,9 +686,9 @@ export class ChatUI {
   updateSendButton(disabled) {
     this.sendBtn.disabled = disabled;
     if (disabled) {
-      this.sendBtn.classList.add('loading');
+      this.sendBtn.style.opacity = '0.5';
     } else {
-      this.sendBtn.classList.remove('loading');
+      this.sendBtn.style.opacity = '1';
     }
   }
 
@@ -718,7 +707,6 @@ export class ChatUI {
    * Scroll to bottom
    */
   scrollToBottom(force = false) {
-    // Only auto-scroll if user is at bottom or force is true
     if (force || this.isAtBottom()) {
       setTimeout(() => {
         this.chatContainer.scrollTop = this.chatContainer.scrollHeight;

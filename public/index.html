@@ -2,25 +2,31 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <meta name="description" content="LLM Chat Interface - A minimal ChatGPT clone connecting to Kai LLM server. Chat with AI models in a clean, privacy-focused interface.">
-  <meta name="keywords" content="llm, chat, ai, chatgpt, kai, pwa, offline, privacy">
-  <meta name="author" content="LLM Chat">
-  <meta name="theme-color" content="#2563eb">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="description" content="Kai - Your private AI companion powered by local models.">
+  <meta name="keywords" content="llm, chat, ai, kai, pwa, offline, privacy, local models">
+  <meta name="author" content="Kai">
+  <meta name="theme-color" content="#0f0f18">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   
   <!-- Security -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https://api.eanhd.com https:; worker-src 'self'; font-src 'self' data:;">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://rsms.me; img-src 'self' data: https:; connect-src 'self' https://api.eanhd.com https:; worker-src 'self'; font-src 'self' data: https://rsms.me;">
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://rsms.me/">
+  <link rel="stylesheet" href="https://rsms.me/inter/inter.css">
   
   <!-- Open Graph / Facebook -->
   <meta property="og:type" content="website">
-  <meta property="og:title" content="LLM Chat - Minimal AI Chat Interface">
-  <meta property="og:description" content="Chat with AI models in a clean, privacy-focused interface. Supports streaming, markdown, and offline access.">
+  <meta property="og:title" content="Kai - Private AI Companion">
+  <meta property="og:description" content="Your private AI companion — powered by local models.">
   <meta property="og:image" content="./icons/icon-512.svg">
   
   <!-- Twitter -->
   <meta property="twitter:card" content="summary">
-  <meta property="twitter:title" content="LLM Chat - Minimal AI Chat Interface">
-  <meta property="twitter:description" content="Chat with AI models in a clean, privacy-focused interface.">
+  <meta property="twitter:title" content="Kai - Private AI Companion">
+  <meta property="twitter:description" content="Your private AI companion — powered by local models.">
   
   <!-- PWA -->
   <link rel="manifest" href="./manifest.json">
@@ -30,14 +36,19 @@
   <!-- Styles -->
   <link rel="stylesheet" href="./assets/styles.css">
 
-  <title>LLM Chat</title>
+  <title>Kai</title>
 </head>
 <body>
   <div id="app">
     <!-- Sidebar -->
     <aside id="sidebar" class="sidebar">
       <div class="sidebar-header">
-        <button id="new-chat-btn" class="primary">New Chat</button>
+        <div class="logo">Kai</div>
+        <button id="new-chat-btn" class="icon" aria-label="New Chat">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 5v14M5 12h14"/>
+          </svg>
+        </button>
         <button id="close-sidebar-btn" class="icon close-sidebar-btn" aria-label="Close sidebar">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M18 6L6 18M6 6l12 12"/>
@@ -71,7 +82,10 @@
             <path d="M3 12h18M3 6h18M3 18h18"/>
           </svg>
         </button>
-        <h1 id="chat-title">New Chat</h1>
+        <h1 id="chat-title">Kai</h1>
+        <div class="header-actions">
+           <!-- Header actions will be injected here if needed -->
+        </div>
       </header>
 
       <div id="chat-container" class="chat-container">
@@ -80,41 +94,37 @@
         </div>
       </div>
 
-      <div id="input-area" class="input-area">
-        <form id="message-form" class="message-form">
-          <button type="button" id="livekit-btn" class="voice-btn" aria-label="Voice Mode" style="margin-right: 4px;">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M12 3v18M8 8v8M16 8v8M4 11v2M20 11v2"/>
+      <div id="input-area" class="input-container">
+        <div class="input-wrapper">
+          <textarea id="message-input" placeholder="Message Kai..." rows="1" autofocus></textarea>
+
+          <!-- + menu button (stubbed for now – just shows toast "Coming soon") -->
+          <button id="attach-btn" class="action-btn" title="Attach">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+              <polyline points="17 8 12 3 7 8"/>
+              <line x1="12" y1="3" x2="12" y2="15"/>
             </svg>
           </button>
-          <textarea 
-            id="message-input" 
-            class="message-input" 
-            placeholder="Message..." 
-            rows="1"
-            aria-label="Message input"
-          ></textarea>
-          <button type="button" id="voice-btn" class="voice-btn" aria-label="Dictation">
-            <svg id="mic-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+
+          <!-- Microphone (shows when input empty) -->
+          <button id="mic-btn" class="action-btn mic-btn">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/>
               <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
               <line x1="12" y1="19" x2="12" y2="23"/>
               <line x1="8" y1="23" x2="16" y2="23"/>
             </svg>
-            <svg id="pause-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display: none;">
-              <rect x="6" y="4" width="4" height="16"/>
-              <rect x="14" y="4" width="4" height="16"/>
+          </button>
+
+          <!-- Send button (shows only when typing) -->
+          <button id="send-btn" class="action-btn send-btn hidden">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="22" y1="2" x2="11" y2="13"/>
+              <polygon points="22 2 15 22 11 13 2 9 22 2"/>
             </svg>
           </button>
-          <button type="submit" id="send-btn" class="send-btn" aria-label="Send message">
-            <svg id="send-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/>
-            </svg>
-            <svg id="stop-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="display: none;">
-              <rect x="6" y="6" width="12" height="12" rx="1"/>
-            </svg>
-          </button>
-        </form>
+        </div>
       </div>
     </main>
 
