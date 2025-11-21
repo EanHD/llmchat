@@ -133,24 +133,11 @@ export class ChatUI {
   toggleInputButtons() {
     const hasText = this.messageInput.value.trim().length > 0;
     if (hasText) {
-      this.micBtn.style.display = 'none';
+      if (this.micBtn) this.micBtn.style.display = 'none';
       this.sendBtn.classList.remove('hidden');
-      this.sendBtn.style.display = 'flex';
-      // Small animation for send button appearance
-      requestAnimationFrame(() => {
-        this.sendBtn.style.opacity = '1';
-        this.sendBtn.style.transform = 'scale(1)';
-      });
     } else {
-      this.sendBtn.style.opacity = '0';
-      this.sendBtn.style.transform = 'scale(0.8)';
-      setTimeout(() => {
-        if (this.messageInput.value.trim().length === 0) {
-          this.sendBtn.classList.add('hidden');
-          this.sendBtn.style.display = 'none';
-          this.micBtn.style.display = 'flex';
-        }
-      }, 200);
+      this.sendBtn.classList.add('hidden');
+      if (this.micBtn) this.micBtn.style.display = 'flex';
     }
   }
 
