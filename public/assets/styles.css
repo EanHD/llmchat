@@ -453,6 +453,7 @@ textarea {
   background: transparent;
   color: var(--text-primary);
   padding: 0;
+  position: relative;
 }
 
 /* Input Area */
@@ -521,6 +522,127 @@ textarea {
 .send-btn { background: #007bff; color: white; }
 .send-btn:hover { background: #0069d9; }
 .send-btn.hidden { opacity: 0; pointer-events: none; transform: scale(0.8); display: none; }
+
+/* Sending spinner for paper plane */
+.send-btn.sending svg {
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Assistant message action buttons (copy + regen) */
+.assistant-actions {
+  position: absolute;
+  top: -28px;
+  right: 0;
+  display: flex;
+  gap: 6px;
+  opacity: 0;
+  transform: translateY(-4px);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  pointer-events: none;
+}
+
+.message.assistant:hover .assistant-actions,
+.assistant-actions.show {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.assistant-actions .btn-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.12);
+  color: var(--text-secondary);
+}
+
+.assistant-actions .btn-icon:hover {
+  color: var(--text-primary);
+  background: rgba(255,255,255,0.12);
+}
+
+/* Rage Reactions menu */
+.reaction-menu {
+  position: fixed;
+  z-index: 1000;
+  display: flex;
+  gap: 8px;
+  padding: 8px 10px;
+  background: rgba(0,0,0,0.6);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 16px;
+  backdrop-filter: blur(12px);
+  box-shadow: var(--shadow-lg);
+}
+
+.reaction-menu.hidden { display: none; }
+
+.reaction-emoji {
+  font-size: 20px;
+  line-height: 1;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.12);
+}
+
+.reaction-emoji:active {
+  transform: scale(1.1);
+}
+
+/* Floating emoji animation after tap */
+.emoji-float {
+  position: absolute;
+  pointer-events: none;
+  animation: float-up 0.9s ease forwards;
+}
+
+@keyframes float-up {
+  0% { opacity: 0; transform: translateY(6px) scale(0.9); }
+  20% { opacity: 1; transform: translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateY(-36px) scale(1.1); }
+}
+
+/* New Chat FAB */
+.fab-new-chat {
+  position: absolute;
+  right: 16px;
+  bottom: calc(84px + env(safe-area-inset-bottom));
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.08);
+  backdrop-filter: blur(12px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-primary);
+  box-shadow: var(--shadow-lg);
+  transition: transform 0.2s ease, opacity 0.2s ease;
+  z-index: 30;
+}
+
+.fab-new-chat.hidden { opacity: 0; pointer-events: none; transform: translateY(8px); }
+.fab-new-chat:hover { background: rgba(255,255,255,0.14); }
+
+/* Drunk mode */
+body.drunk-mode .messages { font-size: 1.125rem; }
+body.drunk-mode .message-content { line-height: 1.75; }
+body.drunk-mode .chat-container { scroll-behavior: smooth; }
 
 
 /* Animations */

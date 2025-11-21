@@ -94,6 +94,13 @@
         </div>
       </div>
 
+      <!-- Floating New Chat FAB (shows when scrolled) -->
+      <button id="new-chat-fab" class="fab-new-chat hidden" aria-label="New Chat">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 5v14M5 12h14"/>
+        </svg>
+      </button>
+
       <div id="input-area" class="input-container">
         <div class="input-wrapper">
           <textarea id="message-input" placeholder="Message Kai..." rows="1" autofocus></textarea>
@@ -127,6 +134,13 @@
         </div>
       </div>
     </main>
+
+    <!-- Rage Reactions Menu (shown on long-press on assistant messages) -->
+    <div id="reaction-menu" class="reaction-menu hidden" role="dialog" aria-label="Reactions">
+      <button class="reaction-emoji" data-reaction="😭" aria-label="Cry">😭</button>
+      <button class="reaction-emoji" data-reaction="🤓" aria-label="Nerd">🤓</button>
+      <button class="reaction-emoji" data-reaction="💀" aria-label="Skull">💀</button>
+    </div>
 
     <!-- Settings Panel (Hidden by default) -->
     <div id="settings-panel" class="settings-panel hidden">
