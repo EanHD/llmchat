@@ -32,6 +32,8 @@ export class ChatUI {
     
     this.recognition = null;
     this.isListening = false;
+    this.isManualStop = false;
+    this.lastInterimResult = '';
     
     this.init();
   }
@@ -135,6 +137,14 @@ export class ChatUI {
 
   toggleInputButtons() {
     const hasText = this.messageInput.value.trim().length > 0;
+    
+    // If listening, always show mic (as stop button) and hide send
+    if (this.isListening) {
+      if (this.micBtn) this.micBtn.style.display = 'flex';
+      this.sendBtn.classList.add('hidden');
+      return;
+    }
+
     if (hasText) {
       if (this.micBtn) this.micBtn.style.display = 'none';
       this.sendBtn.classList.remove('hidden');
@@ -748,59 +758,95 @@ export class ChatUI {
     }
   }
 
+  
+
+
+
   startListening() {
-    if (!this.recognition) {
-      const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-      this.recognition = new SpeechRecognition();
-      this.recognition.continuous = false;
-      this.recognition.interimResults = true;
-      this.recognition.lang = 'en-US';
-
-      this.recognition.onstart = () => {
-        this.isListening = true;
-        this.micBtn.classList.add('listening');
-        // Change to stop icon (square or X)
-        this.micBtn.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="6" width="12" height="12" rx="2" fill="currentColor"/></svg>';
-      };
-
-      this.recognition.onend = () => {
-        this.isListening = false;
-        this.micBtn.classList.remove('listening');
-        // Back to mic icon
-        this.micBtn.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>';
-      };
-
-      this.recognition.onresult = (event) => {
-        let finalTranscript = '';
-
-        for (let i = event.resultIndex; i < event.results.length; ++i) {
-          if (event.results[i].isFinal) {
-            finalTranscript += event.results[i][0].transcript;
-          }
-        }
-
-        if (finalTranscript) {
-          const currentVal = this.messageInput.value;
-          const prefix = currentVal && !currentVal.endsWith(' ') ? ' ' : '';
-          this.messageInput.value = currentVal + prefix + finalTranscript;
-          this.adjustTextareaHeight();
-          this.toggleInputButtons();
-        }
-      };
-      
-      this.recognition.onerror = (event) => {
-        console.error('Speech recognition error', event.error);
-        this.stopListening();
-        if (event.error === 'not-allowed') {
-            this.showToast('Microphone access denied');
-        }
-      };
+    if (this.recognition) {
+      this.recognition.onend = null;
+      this.recognition.stop();
     }
 
-    this.recognition.start();
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    this.recognition = new SpeechRecognition();
+    this.recognition.continuous = false;
+    this.recognition.interimResults = true;
+    this.recognition.lang = 'en-US';
+    this.recognition.maxAlternatives = 1;
+
+    this.isManualStop = false;
+    this.lastInterimResult = '';
+
+    this.recognition.onstart = () => {
+      this.isListening = true;
+      this.micBtn.classList.add('listening');
+      this.micBtn.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="6" width="12" height="12" rx="2" fill="currentColor"/></svg>';
+      this.toggleInputButtons();
+    };
+
+    this.recognition.onend = () => {
+      this.isListening = false;
+      this.micBtn.classList.remove('listening');
+      this.micBtn.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>';
+
+      if (this.lastInterimResult && !this.isManualStop) {
+         this.appendToInput(this.lastInterimResult);
+         this.lastInterimResult = '';
+      }
+      this.toggleInputButtons();
+    };
+
+    this.recognition.onresult = (event) => {
+      let finalTranscript = '';
+      let interimTranscript = '';
+
+      for (let i = event.resultIndex; i < event.results.length; ++i) {
+        if (event.results[i].isFinal) {
+          finalTranscript += event.results[i][0].transcript;
+        } else {
+          interimTranscript += event.results[i][0].transcript;
+        }
+      }
+
+      this.lastInterimResult = interimTranscript;
+
+      if (finalTranscript) {
+        this.appendToInput(finalTranscript);
+        this.lastInterimResult = '';
+      }
+    };
+    
+    this.recognition.onerror = (event) => {
+      console.error('Speech recognition error', event.error);
+      if (event.error === 'no-speech') return;
+
+      this.stopListening();
+      
+      if (event.error === 'not-allowed') {
+          this.showToast('Microphone access denied');
+      }
+    };
+
+    try {
+      this.recognition.start();
+    } catch (e) {
+      console.error('Failed to start recognition:', e);
+    }
+  }
+
+  appendToInput(text) {
+    if (!text) return;
+    const currentVal = this.messageInput.value;
+    const prefix = (currentVal && !currentVal.endsWith(' ') && !currentVal.endsWith('\n')) ? ' ' : '';
+    this.messageInput.value = currentVal + prefix + text;
+    this.adjustTextareaHeight();
+    this.toggleInputButtons();
+    this.messageInput.scrollTop = this.messageInput.scrollHeight;
   }
 
   stopListening() {
+    this.isManualStop = true;
     if (this.recognition) {
       this.recognition.stop();
     }
