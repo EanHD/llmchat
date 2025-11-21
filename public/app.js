@@ -10,6 +10,7 @@ import { SettingsUI } from './src/ui/settings.js';
 import { MemoryUI } from './src/ui/memory.js';
 import { toast } from './src/ui/toast.js';
 import { DEFAULT_SETTINGS } from './src/models/settings.js';
+import { shortcuts } from './src/core/shortcuts.js';
 
 class App {
   constructor() {
@@ -34,11 +35,22 @@ class App {
       // Initialize default settings if not exists
       await this.initializeSettings();
 
+      // Initialize personal shortcuts
+      await shortcuts.init();
+
+      // Handle URL routing (for /new, /?drunk, etc.)
+      this.handleURLRouting();
+
       // Initialize UI components
       this.chatUI = new ChatUI();
       this.sidebarUI = new SidebarUI();
       this.settingsUI = new SettingsUI();
       this.memoryUI = new MemoryUI();
+
+      // Personal PWA features
+      this.setupKeyboardShortcuts();
+      this.setupShakeToClear();
+      this.setupDebugPanel();
 
       // Premium mobile UX enhancements
       await this.setupInputAutofocus();
@@ -65,6 +77,56 @@ class App {
     } catch (error) {
       console.error('Failed to initialize app:', error);
       this.showFatalError(error);
+    }
+  }
+
+  /**
+   * Handle URL routing for quick actions
+   */
+  handleURLRouting() {
+    const params = new URLSearchParams(window.location.search);
+    const hash = window.location.hash.slice(1);
+
+    // Handle query params (?new, ?drunk, ?voice, etc.)
+    if (params.has('new') || params.has('action') && params.get('action') === 'new') {
+      setTimeout(() => {
+        state.setCurrentConversation(null);
+        state.setMessages([]);
+        toast.success('New chat started');
+      }, 500);
+    }
+
+    if (params.has('drunk')) {
+      setTimeout(() => {
+        document.body.classList.add('drunk-mode');
+        toast.info('Drunk mode activated');
+      }, 500);
+    }
+
+    if (params.has('settings') || params.has('action') && params.get('action') === 'settings') {
+      setTimeout(() => {
+        document.getElementById('settings-panel')?.classList.remove('hidden');
+      }, 600);
+    }
+
+    if (params.has('memory')) {
+      setTimeout(() => {
+        document.getElementById('memory-panel')?.classList.remove('hidden');
+      }, 600);
+    }
+
+    // Handle hash routes (#new, #drunk, etc.)
+    if (hash === 'new') {
+      setTimeout(() => {
+        state.setCurrentConversation(null);
+        state.setMessages([]);
+        toast.success('New chat started');
+      }, 500);
+    }
+
+    // Clear URL params after processing
+    if (params.toString()) {
+      window.history.replaceState({}, '', window.location.pathname + window.location.hash);
     }
   }
 
@@ -322,6 +384,263 @@ class App {
       menu.classList.toggle('hidden');
     });
     document.addEventListener('click', hide);
+  }
+
+  /**
+   * Setup global keyboard shortcuts
+   */
+  setupKeyboardShortcuts() {
+    document.addEventListener('keydown', (e) => {
+      // Don't trigger if typing in input
+      const input = document.getElementById('message-input');
+      const isTyping = document.activeElement === input;
+
+      const isMod = e.metaKey || e.ctrlKey;
+
+      // Cmd/Ctrl + K: New chat
+      if (isMod && e.key === 'k') {
+        e.preventDefault();
+        state.setCurrentConversation(null);
+        state.setMessages([]);
+        toast.success('New chat');
+        if (input) input.focus();
+      }
+
+      // Cmd/Ctrl + R: Regenerate last response
+      if (isMod && e.key === 'r' && !isTyping) {
+        e.preventDefault();
+        const messages = state.getState('messages');
+        const lastAssistant = [...messages].reverse().find(m => m.role === 'assistant');
+        if (lastAssistant) {
+          this.callRegenerateEndpoint(lastAssistant.id, false);
+        }
+      }
+
+      // Cmd/Ctrl + /: Toggle settings
+      if (isMod && e.key === '/') {
+        e.preventDefault();
+        const panel = document.getElementById('settings-panel');
+        if (panel) panel.classList.toggle('hidden');
+      }
+
+      // Cmd/Ctrl + M: Toggle memory
+      if (isMod && e.key === 'm' && !isTyping) {
+        e.preventDefault();
+        const panel = document.getElementById('memory-panel');
+        if (panel) panel.classList.toggle('hidden');
+      }
+
+      // Cmd/Ctrl + D: Toggle drunk mode
+      if (isMod && e.key === 'd' && !isTyping) {
+        e.preventDefault();
+        document.body.classList.toggle('drunk-mode');
+        const isActive = document.body.classList.contains('drunk-mode');
+        toast.info(isActive ? 'Drunk mode ON' : 'Drunk mode OFF');
+      }
+
+      // Escape: Close any open panel
+      if (e.key === 'Escape') {
+        document.getElementById('settings-panel')?.classList.add('hidden');
+        document.getElementById('memory-panel')?.classList.add('hidden');
+        document.getElementById('reaction-menu')?.classList.add('hidden');
+      }
+    });
+  }
+
+  /**
+   * Setup shake-to-clear gesture
+   */
+  setupShakeToClear() {
+    if (!window.DeviceMotionEvent) return;
+
+    let lastShake = 0;
+    let shakeThreshold = 15;
+
+    const handleMotion = (e) => {
+      const acc = e.accelerationIncludingGravity;
+      if (!acc) return;
+
+      const total = Math.abs(acc.x) + Math.abs(acc.y) + Math.abs(acc.z);
+      const now = Date.now();
+
+      if (total > shakeThreshold && now - lastShake > 1000) {
+        lastShake = now;
+        if (navigator.vibrate) navigator.vibrate([10, 50, 10]);
+        state.setCurrentConversation(null);
+        state.setMessages([]);
+        toast.success('🔄 New chat (shake detected)');
+      }
+    };
+
+    // Request permission on iOS 13+
+    if (typeof DeviceMotionEvent.requestPermission === 'function') {
+      // Will request on first user interaction
+      document.addEventListener('click', async () => {
+        try {
+          const permission = await DeviceMotionEvent.requestPermission();
+          if (permission === 'granted') {
+            window.addEventListener('devicemotion', handleMotion);
+          }
+        } catch (err) {
+          console.log('Motion permission denied');
+        }
+      }, { once: true });
+    } else {
+      // Non-iOS or older iOS
+      window.addEventListener('devicemotion', handleMotion);
+    }
+  }
+
+  /**
+   * Setup debug panel (triple-tap header)
+   */
+  setupDebugPanel() {
+    const header = document.getElementById('chat-header');
+    if (!header) return;
+
+    let tapCount = 0;
+    let tapTimer = null;
+
+    header.addEventListener('click', (e) => {
+      // Only if clicking header itself, not buttons
+      if (e.target.closest('button')) return;
+
+      tapCount++;
+      clearTimeout(tapTimer);
+
+      if (tapCount === 3) {
+        tapCount = 0;
+        this.showDebugPanel();
+      } else {
+        tapTimer = setTimeout(() => { tapCount = 0; }, 500);
+      }
+    });
+  }
+
+  /**
+   * Show debug panel overlay
+   */
+  async showDebugPanel() {
+    const conversations = await storage.getAllConversations();
+    const messages = state.getState('messages');
+    const settings = await storage.getAllSettings();
+    const quota = await storage.checkQuota();
+
+    const debugInfo = {
+      'App Version': '1.0.0',
+      'Conversations': conversations.length,
+      'Messages in Current': messages.length,
+      'IndexedDB Quota': `${quota.used.toFixed(2)}MB / ${quota.total.toFixed(2)}MB (${quota.percentUsed.toFixed(1)}%)`,
+      'Service Worker': navigator.serviceWorker.controller ? 'Active' : 'Not registered',
+      'Online': navigator.onLine,
+      'API Endpoint': settings.apiEndpoint || 'https://api.eanhd.com',
+      'Shortcuts Loaded': Object.keys(shortcuts.getAll()).length,
+      'Current Model': settings.model || 'granite-local',
+      'Streaming': settings.streaming ? 'Enabled' : 'Disabled'
+    };
+
+    const overlay = document.createElement('div');
+    overlay.className = 'debug-overlay';
+    overlay.innerHTML = `
+      <div class="debug-panel">
+        <div class="debug-header">
+          <h3>🛠️ Debug Panel</h3>
+          <button class="close-debug" aria-label="Close">✕</button>
+        </div>
+        <div class="debug-content">
+          ${Object.entries(debugInfo).map(([key, value]) => `
+            <div class="debug-row">
+              <span class="debug-key">${key}:</span>
+              <span class="debug-value">${value}</span>
+            </div>
+          `).join('')}
+        </div>
+        <div class="debug-actions">
+          <button class="debug-btn" id="export-state">Export State</button>
+          <button class="debug-btn" id="clear-cache">Clear Cache</button>
+          <button class="debug-btn" id="reload-app">Reload App</button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(overlay);
+
+    // Add styles if not exists
+    if (!document.getElementById('debug-styles')) {
+      const style = document.createElement('style');
+      style.id = 'debug-styles';
+      style.textContent = `
+        .debug-overlay {
+          position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+          background: rgba(0,0,0,0.8); backdrop-filter: blur(10px);
+          z-index: 10000; display: flex; align-items: center; justify-content: center;
+          animation: fadeIn 0.2s;
+        }
+        .debug-panel {
+          background: #1a1a1a; border-radius: 12px; padding: 20px;
+          max-width: 500px; width: 90%; max-height: 80vh; overflow-y: auto;
+          box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+        }
+        .debug-header {
+          display: flex; justify-content: space-between; align-items: center;
+          margin-bottom: 20px; padding-bottom: 10px; border-bottom: 1px solid #333;
+        }
+        .debug-header h3 { margin: 0; color: #fff; font-size: 18px; }
+        .close-debug {
+          background: transparent; border: none; color: #888;
+          font-size: 24px; cursor: pointer; padding: 0; width: 30px; height: 30px;
+        }
+        .close-debug:hover { color: #fff; }
+        .debug-content { margin-bottom: 20px; }
+        .debug-row {
+          display: flex; justify-content: space-between; padding: 8px 0;
+          border-bottom: 1px solid #222;
+        }
+        .debug-key { color: #888; font-size: 13px; }
+        .debug-value { color: #fff; font-size: 13px; font-weight: 500; }
+        .debug-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+        .debug-btn {
+          flex: 1; padding: 10px; background: #007bff; color: #fff;
+          border: none; border-radius: 6px; cursor: pointer; font-size: 13px;
+        }
+        .debug-btn:hover { background: #0069d9; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+      `;
+      document.head.appendChild(style);
+    }
+
+    // Event handlers
+    overlay.querySelector('.close-debug').addEventListener('click', () => overlay.remove());
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) overlay.remove();
+    });
+
+    overlay.querySelector('#export-state').addEventListener('click', async () => {
+      const stateExport = {
+        conversations: await storage.getAllConversations(),
+        settings,
+        timestamp: new Date().toISOString()
+      };
+      const blob = new Blob([JSON.stringify(stateExport, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `kai-export-${Date.now()}.json`;
+      a.click();
+      toast.success('State exported');
+    });
+
+    overlay.querySelector('#clear-cache').addEventListener('click', async () => {
+      if (confirm('Clear service worker cache?')) {
+        const cacheNames = await caches.keys();
+        await Promise.all(cacheNames.map(name => caches.delete(name)));
+        toast.success('Cache cleared');
+      }
+    });
+
+    overlay.querySelector('#reload-app').addEventListener('click', () => {
+      location.reload();
+    });
   }
 
   /**

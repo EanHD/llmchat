@@ -12,6 +12,7 @@ import { createMessageBubble, createEmptyState, createSpinner } from './componen
 import { markdownRenderer } from './markdown.js';
 import { $, clearElement } from '../utils/dom.js';
 import { generateTitle } from '../utils/format.js';
+import { shortcuts } from '../core/shortcuts.js';
 
 export class ChatUI {
   constructor() {
@@ -288,10 +289,18 @@ export class ChatUI {
    * Handle send message
    */
   async handleSendMessage() {
-    const content = this.messageInput.value.trim();
+    let content = this.messageInput.value.trim();
     
     if (!content || this.isSubmitting) {
       return;
+    }
+
+    // Expand personal shortcuts
+    const originalContent = content;
+    content = shortcuts.expand(content);
+    if (content !== originalContent) {
+      // Show what was expanded
+      console.log(`Shortcut expanded: "${originalContent}" → "${content}"`);
     }
 
     // Haptic feedback
