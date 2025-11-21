@@ -109,22 +109,24 @@ export function createSpinner(size = 'md') {
 /**
  * Create empty state
  */
-export function createEmptyState(title, description) {
-  const icon = createElement('div', {
-    className: 'empty-state-icon'
-  }, '💬');
-
-  const titleEl = createElement('div', {
-    className: 'empty-state-title'
-  }, title);
-
-  const descEl = createElement('div', {
-    className: 'empty-state-text'
-  }, description);
-
-  return createElement('div', {
-    className: 'empty-state'
-  }, icon, titleEl, descEl);
+export function createEmptyState() {
+  const container = createElement('div', { className: 'empty-state' });
+  const logo = createElement('div', { className: 'empty-state-logo' }, 'K');
+  const headline = createElement('div', { className: 'empty-state-title' }, 'How can I help you today?');
+  const chips = createElement('div', { className: 'empty-state-chips' });
+  const chipTexts = [
+    'debug this code',
+    'roast my life choices',
+    'what should I eat at 3am'
+  ];
+  chipTexts.forEach(text => {
+    const btn = createElement('button', { className: 'prompt-chip', 'data-text': text }, text);
+    chips.appendChild(btn);
+  });
+  container.appendChild(logo);
+  container.appendChild(headline);
+  container.appendChild(chips);
+  return container;
 }
 
 /**

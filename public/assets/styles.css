@@ -266,7 +266,7 @@ textarea {
 
 .logo {
   font-weight: var(--font-bold);
-  font-size: var(--text-xl);
+  font-size: 24px;
   letter-spacing: -0.02em;
   margin-right: auto;
   padding-left: 0.5rem;
@@ -278,8 +278,8 @@ textarea {
   color: var(--text-primary);
   border-radius: var(--radius-md);
   padding: 0.5rem;
-  width: 2.5rem;
-  height: 2.5rem;
+  width: 3rem;
+  height: 3rem;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -401,6 +401,11 @@ textarea {
   left: 1rem;
 }
 
+/* Hide hamburger on desktop */
+@media (min-width: 769px) {
+  #sidebar-toggle { display: none; }
+}
+
 .chat-container {
   flex: 1;
   overflow-y: auto;
@@ -418,6 +423,29 @@ textarea {
   gap: 1.5rem;
   padding: 0 1.5rem;
 }
+
+/* Header actions: avatar + dropdown */
+.header-actions { position: absolute; right: 1rem; display: flex; align-items: center; gap: 10px; pointer-events: auto; }
+.avatar-btn {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: rgba(255,255,255,0.1);
+  color: #fff; border: 1px solid rgba(255,255,255,0.12);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 700;
+}
+.avatar-btn:hover { background: rgba(255,255,255,0.16); }
+.user-menu {
+  position: absolute; top: 40px; right: 0; z-index: 1000;
+  background: rgba(0,0,0,0.8); border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 10px; backdrop-filter: blur(12px);
+  padding: 6px; display: flex; flex-direction: column; gap: 4px;
+}
+.user-menu.hidden { display: none; }
+.user-menu-item {
+  background: transparent; border: none; color: #ddd; padding: 6px 10px;
+  text-align: left; border-radius: 8px; font-size: 13px;
+}
+.user-menu-item:hover { background: rgba(255,255,255,0.08); color: #fff; }
 
 /* Message Bubbles */
 .message {
@@ -498,6 +526,18 @@ textarea {
   font-family: inherit;
 }
 
+/* Empty state chips */
+.prompt-chip {
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.12);
+  color: #fff;
+  padding: 8px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  margin: 4px;
+}
+.prompt-chip:hover { background: rgba(255,255,255,0.14); }
+
 
 .icon-btn {
   width: 42px;
@@ -564,6 +604,13 @@ textarea {
   color: var(--text-primary);
   background: rgba(255,255,255,0.12);
 }
+
+/* Sending dots inside send button */
+.sending-dots { display: inline-flex; gap: 3px; align-items: center; }
+.sending-dots .dot { width: 5px; height: 5px; background: white; border-radius: 50%; animation: bounce 1s infinite ease-in-out; }
+.sending-dots .dot:nth-child(2) { animation-delay: 0.15s; }
+.sending-dots .dot:nth-child(3) { animation-delay: 0.3s; }
+@keyframes bounce { 0%, 80%, 100% { transform: scale(0.5); opacity: 0.6 } 40% { transform: scale(1); opacity: 1 } }
 
 /* Rage Reactions menu */
 .reaction-menu {

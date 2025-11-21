@@ -84,7 +84,13 @@
         </button>
         <h1 id="chat-title">Kai</h1>
         <div class="header-actions">
-           <!-- Header actions will be injected here if needed -->
+          <button id="user-menu-btn" class="avatar-btn" aria-label="User menu">
+            <span>K</span>
+          </button>
+          <div id="user-menu" class="user-menu hidden" role="menu" aria-label="User menu">
+            <button class="user-menu-item" data-action="settings">Settings</button>
+            <button class="user-menu-item" data-action="logout">Logout</button>
+          </div>
         </div>
       </header>
 
@@ -122,9 +128,9 @@
 
     <!-- Rage Reactions Menu (shown on long-press on assistant messages) -->
     <div id="reaction-menu" class="reaction-menu hidden" role="dialog" aria-label="Reactions">
-      <button class="reaction-emoji" data-reaction="😭" aria-label="Cry">😭</button>
-      <button class="reaction-emoji" data-reaction="🤓" aria-label="Nerd">🤓</button>
-      <button class="reaction-emoji" data-reaction="💀" aria-label="Skull">💀</button>
+      <button class="reaction-emoji" data-reaction="👎" aria-label="Too long">👎</button>
+      <button class="reaction-emoji" data-reaction="🤓" aria-label="Over-explaining">🤓</button>
+      <button class="reaction-emoji" data-reaction="💀" aria-label="Tone wrong">💀</button>
     </div>
 
     <!-- Settings Panel (Hidden by default) -->

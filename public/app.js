@@ -48,6 +48,8 @@ class App {
       this.setupReactionMenu();
       this.setupMicDrunkMode();
       this.setupSendSpinner();
+      this.setupPromptChips();
+      this.setupUserMenu();
 
       // Check for offline mode
       this.setupOfflineDetection();
@@ -117,7 +119,7 @@ class App {
     if (!container || !fab) return;
 
     const onScroll = () => {
-      const show = container.scrollTop > 500;
+      const show = container.scrollTop > 300;
       fab.classList.toggle('hidden', !show);
     };
     container.addEventListener('scroll', onScroll);
@@ -279,20 +281,10 @@ class App {
   }
 
   async sendFeedbackReaction(messageId, reaction) {
-    try {
-      const base = await this.getApiEndpoint();
-      const conversationId = state.getState('currentConversationId') || null;
-      const res = await fetch(`${base}/v1/feedback`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messageId, conversationId, reaction })
-      });
-      if (!res.ok) throw new Error(await res.text());
-      toast.success('Feedback sent');
-    } catch (err) {
-      console.error('Feedback failed', err);
-      toast.error('Feedback failed');
-    }
+    // Minimum viable: just log for now
+    const map = { '👎': 'too long', '🤓': 'over-explaining', '💀': 'tone wrong' };
+    console.log('[Feedback]', { messageId, reaction, meaning: map[reaction] || reaction });
+    toast.success('Feedback noted');
   }
 
   setupMicDrunkMode() {
@@ -319,15 +311,49 @@ class App {
   setupSendSpinner() {
     const send = document.getElementById('send-btn');
     if (!send) return;
+    const original = send.innerHTML;
+    const showDots = () => {
+      send.innerHTML = '<span class="sending-dots"><span class="dot"></span><span class="dot"></span><span class="dot"></span></span>';
+    };
+    const restore = () => { send.innerHTML = original; };
     send.addEventListener('click', () => {
-      send.classList.add('sending');
-      // fallback if streaming doesn't start
-      setTimeout(() => send.classList.remove('sending'), 1500);
+      showDots();
+      setTimeout(restore, 2000);
     });
-    // Remove spinner on streaming state change
-    state.subscribe('isStreaming', () => {
-      send.classList.remove('sending');
+    state.subscribe('isStreaming', (val) => {
+      if (!val) restore();
     });
+  }
+
+  setupPromptChips() {
+    document.addEventListener('click', (e) => {
+      const chip = e.target.closest('.prompt-chip');
+      if (!chip) return;
+      const text = chip.getAttribute('data-text') || chip.textContent;
+      const input = document.getElementById('message-input');
+      const send = document.getElementById('send-btn');
+      const mic = document.getElementById('mic-btn');
+      if (!input || !send || !mic) return;
+      input.value = text;
+      // Reveal send button
+      send.classList.remove('hidden');
+      mic.style.display = 'none';
+      input.focus();
+    });
+  }
+
+  setupUserMenu() {
+    const btn = document.getElementById('user-menu-btn');
+    const menu = document.getElementById('user-menu');
+    if (!btn || !menu) return;
+    const hide = (e) => {
+      if (!menu.contains(e.target) && e.target !== btn) menu.classList.add('hidden');
+    };
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      menu.classList.toggle('hidden');
+    });
+    document.addEventListener('click', hide);
   }
 
   /**

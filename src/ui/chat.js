@@ -695,13 +695,12 @@ export class ChatUI {
    */
   scrollToBottom(force = false) {
     if (force || this.isAtBottom()) {
-      setTimeout(() => {
-        this.chatContainer.scrollTop = this.chatContainer.scrollHeight;
-        this.userScrolledUp = false;
-        if (this.scrollToBottomBtn) {
-          this.scrollToBottomBtn.style.display = 'none';
-        }
-      }, 0);
+      const target = this.chatContainer.scrollHeight;
+      this.chatContainer.scrollTo({ top: target, behavior: 'smooth' });
+      this.userScrolledUp = false;
+      if (this.scrollToBottomBtn) {
+        this.scrollToBottomBtn.style.display = 'none';
+      }
     }
   }
 }
