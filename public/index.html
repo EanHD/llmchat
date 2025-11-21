@@ -11,7 +11,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   
   <!-- Security -->
-  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://rsms.me; img-src 'self' data: https:; connect-src 'self' https://api.eanhd.com https:; worker-src 'self'; font-src 'self' data: https://rsms.me;">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://cdn.jsdelivr.net https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://rsms.me; img-src 'self' data: https:; connect-src 'self' https://api.eanhd.com https:; worker-src 'self'; font-src 'self' data: https://rsms.me https://r2cdn.perplexity.ai;">
   
   <!-- Fonts -->
   <link rel="preconnect" href="https://rsms.me/">
@@ -81,7 +81,7 @@
           <button id="sidebar-toggle" class="icon-btn-ghost mobile-only" aria-label="Menu">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
           </button>
-          <h1 class="app-title">Kai</h1>
+          <h1 id="chat-title" class="app-title">Kai</h1>
           <button id="header-new-chat-btn" class="icon-btn-ghost" aria-label="New Chat">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
           </button>

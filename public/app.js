@@ -49,7 +49,6 @@ class App {
 
       // Personal PWA features
       this.setupKeyboardShortcuts();
-      this.setupShakeToClear();
       this.setupDebugPanel();
 
       // Premium mobile UX enhancements
@@ -62,9 +61,6 @@ class App {
       this.setupSendSpinner();
       this.setupPromptChips();
       this.setupUserMenu();
-
-      // Check for offline mode
-      this.setupOfflineDetection();
 
       // Set up error boundary
       this.setupErrorBoundary();
@@ -448,53 +444,6 @@ class App {
   }
 
   /**
-   * Setup shake-to-clear gesture
-   */
-  async setupShakeToClear() {
-    if (!window.DeviceMotionEvent) return;
-
-    const settings = await storage.getAllSettings();
-    if (settings.shakeToClear === false) return; // Disabled in settings
-
-    let lastShake = 0;
-    let shakeThreshold = 15;
-
-    const handleMotion = (e) => {
-      const acc = e.accelerationIncludingGravity;
-      if (!acc) return;
-
-      const total = Math.abs(acc.x) + Math.abs(acc.y) + Math.abs(acc.z);
-      const now = Date.now();
-
-      if (total > shakeThreshold && now - lastShake > 1000) {
-        lastShake = now;
-        if (navigator.vibrate) navigator.vibrate([10, 50, 10]);
-        state.setCurrentConversation(null);
-        state.setMessages([]);
-        toast.success('🔄 New chat (shake detected)');
-      }
-    };
-
-    // Request permission on iOS 13+
-    if (typeof DeviceMotionEvent.requestPermission === 'function') {
-      // Will request on first user interaction
-      document.addEventListener('click', async () => {
-        try {
-          const permission = await DeviceMotionEvent.requestPermission();
-          if (permission === 'granted') {
-            window.addEventListener('devicemotion', handleMotion);
-          }
-        } catch (err) {
-          console.log('Motion permission denied');
-        }
-      }, { once: true });
-    } else {
-      // Non-iOS or older iOS
-      window.addEventListener('devicemotion', handleMotion);
-    }
-  }
-
-  /**
    * Setup debug panel (triple-tap header)
    */
   setupDebugPanel() {
@@ -676,34 +625,6 @@ class App {
     // Load settings into state
     const settings = await storage.getAllSettings();
     state.setSettings(settings);
-  }
-
-  /**
-   * Set up offline detection
-   */
-  setupOfflineDetection() {
-    // Create offline banner
-    this.offlineBanner = document.createElement('div');
-    this.offlineBanner.className = 'offline-banner';
-    this.offlineBanner.textContent = '⚠ You are offline - some features may not work';
-    document.body.appendChild(this.offlineBanner);
-
-    const updateOnlineStatus = () => {
-      const isOffline = !navigator.onLine;
-      state.setOffline(isOffline);
-      
-      if (isOffline) {
-        this.offlineBanner.classList.add('show');
-        toast.warning('Connection lost - viewing cached content');
-      } else {
-        this.offlineBanner.classList.remove('show');
-        toast.success('Back online');
-      }
-    };
-
-    window.addEventListener('online', updateOnlineStatus);
-    window.addEventListener('offline', updateOnlineStatus);
-    updateOnlineStatus();
   }
 
   /**

@@ -255,13 +255,6 @@ export class SettingsUI {
       this.createToggle('sendOnEnter', settings.sendOnEnter !== false)
     ));
 
-    // Shake to Clear (Mobile)
-    this.settingsContent.appendChild(this.createSettingGroup(
-      'Shake to Clear',
-      'Shake your device to start a new chat',
-      this.createToggle('shakeToClear', settings.shakeToClear !== false)
-    ));
-
     // Temperature
     this.settingsContent.appendChild(this.createSettingGroup(
       'Temperature',
