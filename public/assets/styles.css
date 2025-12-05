@@ -518,26 +518,29 @@ button, a, .conversation-item, .prompt-chip {
 .send-btn:hover { background: var(--accent-hover) !important; }
 .send-btn.hidden { display: none !important; }
 
-/* Context Area - Expandable section above input */
-.context-area {
-  width: 100%;
-  max-width: 768px;
-  background: rgba(25, 25, 30, 0.98);
+/* Context Menu - Floating options above input */
+.context-menu {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 16px;
+  background: var(--bg-secondary);
   border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 16px;
-  margin-bottom: 8px;
-  overflow: hidden;
-  animation: contextSlideIn 0.2s ease-out;
+  border-radius: 12px;
+  padding: 6px;
+  min-width: 180px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  z-index: 100;
+  animation: menuSlideUp 0.2s ease-out;
 }
 
-.context-area.hidden {
+.context-menu.hidden {
   display: none;
 }
 
-@keyframes contextSlideIn {
+@keyframes menuSlideUp {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(8px);
   }
   to {
     opacity: 1;
@@ -545,30 +548,73 @@ button, a, .conversation-item, .prompt-chip {
   }
 }
 
-.context-header {
+.context-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.context-menu-item:hover {
+  background: rgba(255,255,255,0.08);
+}
+
+.context-menu-icon {
+  font-size: 18px;
+}
+
+.context-menu-label {
+  font-size: 14px;
+  color: var(--text-primary);
+}
+
+/* Context Panel - Floating panel for text input */
+.context-panel {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 16px;
+  right: 16px;
+  max-width: 600px;
+  background: var(--bg-secondary);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+  z-index: 100;
+  animation: menuSlideUp 0.2s ease-out;
+}
+
+.context-panel.hidden {
+  display: none;
+}
+
+.context-panel-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 10px 14px;
+  padding: 12px 16px;
   border-bottom: 1px solid rgba(255,255,255,0.06);
 }
 
-.context-label {
-  font-size: 12px;
-  font-weight: 500;
+.context-panel-title {
+  font-size: 13px;
+  font-weight: 600;
   color: var(--text-secondary);
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
-.context-close {
-  width: 24px;
-  height: 24px;
+.context-panel-close {
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   background: transparent;
   border: none;
   color: var(--text-tertiary);
-  font-size: 18px;
+  font-size: 20px;
   cursor: pointer;
   display: flex;
   align-items: center;
@@ -576,12 +622,12 @@ button, a, .conversation-item, .prompt-chip {
   transition: all 0.15s;
 }
 
-.context-close:hover {
+.context-panel-close:hover {
   background: rgba(255,255,255,0.1);
   color: #fff;
 }
 
-.context-input {
+.context-panel-input {
   width: 100%;
   background: transparent;
   border: none;
@@ -589,19 +635,29 @@ button, a, .conversation-item, .prompt-chip {
   font-size: 14px;
   font-family: 'SF Mono', 'Monaco', 'Inconsolata', monospace;
   line-height: 1.5;
-  padding: 12px 14px;
+  padding: 12px 16px;
   resize: none;
-  min-height: 80px;
+  min-height: 100px;
   max-height: 200px;
   overflow-y: auto;
 }
 
-.context-input::placeholder {
+.context-panel-input::placeholder {
   color: var(--text-tertiary);
 }
 
-.context-input:focus {
+.context-panel-input:focus {
   outline: none;
+}
+
+/* Attachment previews in context panel */
+.context-panel .attachment-previews {
+  padding: 8px 16px 12px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+}
+
+.context-panel .attachment-previews:empty {
+  display: none;
 }
 
 /* Context area attachment previews */

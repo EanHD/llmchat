@@ -27,9 +27,12 @@ export class ChatUI {
     this.chatTitle = $('#chat-title');
     this.fileInput = $('#file-input');
     this.attachmentPreviews = $('#attachment-previews');
-    this.contextArea = $('#context-area');
+    this.contextMenu = $('#context-menu');
+    this.contextPanel = $('#context-panel');
     this.contextInput = $('#context-input');
-    this.closeContextBtn = $('#close-context-btn');
+    this.closeContextPanel = $('#close-context-panel');
+    this.contextAddText = $('#context-add-text');
+    this.contextAddFile = $('#context-add-file');
     
     this.apiClient = null;
     this.isSubmitting = false;
@@ -121,10 +124,26 @@ export class ChatUI {
       });
     }
 
-    // Attach button - toggles context area
+    // Attach button - toggles context menu
     if (this.attachBtn) {
-      this.attachBtn.addEventListener('click', () => {
-        this.toggleContextArea();
+      this.attachBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.toggleContextMenu();
+      });
+    }
+    
+    // Context menu items
+    if (this.contextAddText) {
+      this.contextAddText.addEventListener('click', () => {
+        this.hideContextMenu();
+        this.showContextPanel();
+      });
+    }
+    
+    if (this.contextAddFile) {
+      this.contextAddFile.addEventListener('click', () => {
+        this.hideContextMenu();
+        if (this.fileInput) this.fileInput.click();
       });
     }
     
@@ -133,13 +152,17 @@ export class ChatUI {
       this.fileInput.addEventListener('change', (e) => {
         this.handleFileSelect(e.target.files);
         this.fileInput.value = '';
+        // Show panel if files were added
+        if (attachments.hasAttachments()) {
+          this.showContextPanel();
+        }
       });
     }
     
-    // Close context button
-    if (this.closeContextBtn) {
-      this.closeContextBtn.addEventListener('click', () => {
-        this.closeContextArea();
+    // Close context panel
+    if (this.closeContextPanel) {
+      this.closeContextPanel.addEventListener('click', () => {
+        this.hideContextPanel();
       });
     }
     
@@ -150,6 +173,15 @@ export class ChatUI {
         this.toggleInputButtons();
       });
     }
+    
+    // Click outside to close menu
+    document.addEventListener('click', (e) => {
+      if (this.contextMenu && !this.contextMenu.classList.contains('hidden')) {
+        if (!e.target.closest('#context-menu') && !e.target.closest('#attach-btn')) {
+          this.hideContextMenu();
+        }
+      }
+    });
     
     // Drag and drop support
     this.setupDragAndDrop();
@@ -164,32 +196,49 @@ export class ChatUI {
   }
 
   /**
-   * Toggle context area visibility
+   * Toggle context menu visibility
    */
-  toggleContextArea() {
-    if (!this.contextArea) return;
+  toggleContextMenu() {
+    if (!this.contextMenu) return;
     
-    const isHidden = this.contextArea.classList.contains('hidden');
+    const isHidden = this.contextMenu.classList.contains('hidden');
     if (isHidden) {
-      this.contextArea.classList.remove('hidden');
-      // Focus the context input
+      // Hide panel if showing menu
+      this.hideContextPanel();
+      this.contextMenu.classList.remove('hidden');
+    } else {
+      this.contextMenu.classList.add('hidden');
+    }
+  }
+
+  /**
+   * Hide context menu
+   */
+  hideContextMenu() {
+    if (this.contextMenu) {
+      this.contextMenu.classList.add('hidden');
+    }
+  }
+
+  /**
+   * Show context panel
+   */
+  showContextPanel() {
+    if (this.contextPanel) {
+      this.contextPanel.classList.remove('hidden');
       if (this.contextInput) {
         this.contextInput.focus();
-      }
-    } else {
-      // If already open, open file picker instead
-      if (this.fileInput) {
-        this.fileInput.click();
       }
     }
   }
 
   /**
-   * Close context area
+   * Hide context panel
    */
-  closeContextArea() {
-    if (!this.contextArea) return;
-    this.contextArea.classList.add('hidden');
+  hideContextPanel() {
+    if (this.contextPanel) {
+      this.contextPanel.classList.add('hidden');
+    }
   }
 
   /**
@@ -217,7 +266,8 @@ export class ChatUI {
     attachments.clearAttachments();
     this.renderAttachmentPreviews();
     this.updateAttachButton();
-    this.closeContextArea();
+    this.hideContextPanel();
+    this.hideContextMenu();
   }
 
   /**
