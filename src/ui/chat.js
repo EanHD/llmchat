@@ -1092,7 +1092,7 @@ export class ChatUI {
   }
 
   /**
-   * Update agent message content (renders HTML directly)
+   * Update agent message content (renders with markdown for content sections)
    */
   async updateAgentMessageContent(messageId, htmlContent) {
     const messageEl = this.messagesContainer.querySelector(`[data-message-id="${messageId}"]`);
@@ -1101,8 +1101,24 @@ export class ChatUI {
     const contentEl = messageEl.querySelector('.message-content');
     if (!contentEl) return;
 
-    // For agent mode, we render HTML directly
-    contentEl.innerHTML = htmlContent;
+    // Parse and render - agent steps are HTML, content text needs markdown
+    // Process the content - extract agent-content-text spans and render markdown
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = htmlContent;
+    
+    // Find all agent-content-text spans and render markdown
+    const contentSpans = tempDiv.querySelectorAll('.agent-content-text');
+    for (const span of contentSpans) {
+      const rawText = span.textContent;
+      try {
+        const rendered = await markdownRenderer.render(rawText);
+        span.innerHTML = rendered;
+      } catch (e) {
+        // Keep original if markdown fails
+      }
+    }
+    
+    contentEl.innerHTML = tempDiv.innerHTML;
     
     // Add agent response class
     messageEl.classList.add('agent-response');

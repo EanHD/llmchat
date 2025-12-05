@@ -64,74 +64,65 @@ class AgentMode {
         apiEndpoint = 'https://' + apiEndpoint;
       }
 
-      // Try agent endpoint first
-      let useAgentEndpoint = true;
-      let response;
+      // Use standard chat completions with agent-style system prompt
+      yield this.createAgentMessage('planning', '📋 Planning approach...');
       
-      try {
-        response = await fetch(`${apiEndpoint}/v1/agent/execute`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            message: userMessage,
-            conversation_id: conversationId,
-            model: settings.agentModel || 'x-ai/grok-3-fast',
-            stream: true
-          }),
-          signal: this.abortController.signal
-        });
-        
-        if (!response.ok) {
-          useAgentEndpoint = false;
-        }
-      } catch (e) {
-        useAgentEndpoint = false;
+      // Small delay to show planning step
+      await this.delay(300);
+      
+      const response = await fetch(`${apiEndpoint}/v1/chat/completions`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: settings.agentModel || settings.model || 'x-ai/grok-3-fast',
+          messages: [
+            {
+              role: 'system',
+              content: `You are Kai, an expert coding assistant operating in agent mode. You help users build software projects step by step.
+
+When responding:
+1. Start with a brief summary of what you'll do (1-2 sentences)
+2. Break down your approach into clear steps
+3. For code: show complete, working code with clear file paths
+4. Explain key decisions briefly
+5. Be practical and action-oriented
+
+Format code blocks with language specifiers:
+\`\`\`javascript
+// code here
+\`\`\`
+
+For file operations, clearly indicate the file path:
+📁 **File: src/example.js**
+
+Be thorough but concise. Focus on working solutions.`
+            },
+            {
+              role: 'user',
+              content: userMessage
+            }
+          ],
+          stream: true,
+          temperature: 0.3
+        }),
+        signal: this.abortController.signal
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`API error ${response.status}: ${errorText}`);
       }
 
-      // Fallback to standard chat completions with agent-style formatting
-      if (!useAgentEndpoint) {
-        yield this.createAgentMessage('planning', '📋 Using standard model with agent formatting...');
-        
-        response = await fetch(`${apiEndpoint}/v1/chat/completions`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            model: settings.agentModel || settings.model || 'granite-local',
-            messages: [
-              {
-                role: 'system',
-                content: `You are a coding assistant in agent mode. Format your responses like a CLI tool:
-- Start with a brief plan of what you'll do
-- Show your thought process step by step
-- When writing code, show the filename and content clearly
-- Use clear sections for different parts of your response
-- Be concise but thorough`
-              },
-              {
-                role: 'user',
-                content: userMessage
-              }
-            ],
-            stream: true,
-            temperature: 0.3
-          }),
-          signal: this.abortController.signal
-        });
+      yield this.createAgentMessage('executing', '⚡ Generating response...');
 
-        if (!response.ok) {
-          throw new Error(`API error: ${response.status}`);
-        }
-      }
-
-      // Step 3: Process SSE stream
+      // Process SSE stream
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let buffer = '';
       let accumulatedContent = '';
+      let hasYieldedContent = false;
 
       while (true) {
         const { done, value } = await reader.read();
@@ -143,33 +134,34 @@ class AgentMode {
 
         for (const line of lines) {
           if (line.startsWith('data: ')) {
-            const data = line.slice(6);
+            const data = line.slice(6).trim();
             if (data === '[DONE]') continue;
+            if (!data) continue;
             
             try {
               const parsed = JSON.parse(data);
               
-              // Handle agent-specific events
-              if (parsed.type) {
-                yield this.processAgentEvent(parsed);
-              } 
               // Handle standard OpenAI-style streaming
-              else if (parsed.choices?.[0]?.delta?.content) {
-                const content = parsed.choices[0].delta.content;
+              const content = parsed.choices?.[0]?.delta?.content;
+              if (content) {
                 accumulatedContent += content;
+                hasYieldedContent = true;
                 yield this.createAgentMessage('content', content);
               }
             } catch (e) {
-              // Not JSON, might be raw content
-              if (data.trim()) {
-                yield this.createAgentMessage('content', data);
-              }
+              // JSON parse error - skip
+              console.debug('Non-JSON chunk:', data);
             }
           }
         }
       }
 
-      yield this.createAgentMessage('complete', '✓ Task complete');
+      // Only yield complete if we actually got content
+      if (hasYieldedContent) {
+        yield this.createAgentMessage('complete', '✓ Done');
+      } else {
+        yield this.createAgentMessage('error', '❌ No response received from model');
+      }
 
     } catch (error) {
       if (error.name === 'AbortError') {
@@ -184,59 +176,10 @@ class AgentMode {
   }
 
   /**
-   * Process an agent event from the stream
+   * Helper to add delays between steps
    */
-  processAgentEvent(event) {
-    const { type, content, metadata } = event;
-
-    switch (type) {
-      case 'thinking':
-        return this.createAgentMessage('thinking', `🧠 ${content || 'Thinking...'}`);
-      
-      case 'planning':
-        return this.createAgentMessage('planning', `📋 ${content || 'Planning approach...'}`);
-      
-      case 'tool_start':
-        const toolName = metadata?.tool || 'tool';
-        return this.createAgentMessage('tool', `🔧 Running ${toolName}...`, metadata);
-      
-      case 'tool_result':
-        return this.createAgentMessage('tool_result', content, metadata);
-      
-      case 'file_create':
-        return this.createAgentMessage('file', `📝 Creating ${metadata?.path || 'file'}...`, metadata);
-      
-      case 'file_edit':
-        return this.createAgentMessage('file', `✏️ Editing ${metadata?.path || 'file'}...`, metadata);
-      
-      case 'file_read':
-        return this.createAgentMessage('file', `📖 Reading ${metadata?.path || 'file'}...`, metadata);
-      
-      case 'command':
-        return this.createAgentMessage('command', `$ ${content}`, metadata);
-      
-      case 'command_output':
-        return this.createAgentMessage('output', content, metadata);
-      
-      case 'content':
-      case 'text':
-        return this.createAgentMessage('content', content);
-      
-      case 'code':
-        return this.createAgentMessage('code', content, { language: metadata?.language });
-      
-      case 'error':
-        return this.createAgentMessage('error', `❌ ${content}`);
-      
-      case 'success':
-        return this.createAgentMessage('success', `✅ ${content}`);
-      
-      case 'progress':
-        return this.createAgentMessage('progress', content, { percent: metadata?.percent });
-      
-      default:
-        return this.createAgentMessage('content', content || '');
-    }
+  delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
   }
 
   /**
@@ -274,6 +217,9 @@ class AgentMode {
       
       case 'planning':
         return `<div class="agent-step agent-planning"><span class="agent-icon">📋</span><span class="agent-text">${this.escapeHtml(content.replace(/^📋\s*/, ''))}</span></div>`;
+      
+      case 'executing':
+        return `<div class="agent-step agent-executing"><span class="agent-icon">⚡</span><span class="agent-text">${this.escapeHtml(content.replace(/^⚡\s*/, ''))}</span></div>`;
       
       case 'tool':
         return `<div class="agent-step agent-tool"><span class="agent-icon">🔧</span><span class="agent-text">${this.escapeHtml(content.replace(/^🔧\s*/, ''))}</span></div>`;
@@ -313,9 +259,8 @@ class AgentMode {
       
       case 'content':
       default:
-        // For regular content, preserve newlines and format nicely
-        const escaped = this.escapeHtml(content);
-        return `<span class="agent-content-text">${escaped}</span>`;
+        // For regular content, don't escape - it will be rendered with markdown
+        return `<span class="agent-content-text">${content}</span>`;
     }
   }
 
