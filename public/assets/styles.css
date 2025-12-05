@@ -92,17 +92,26 @@ body {
   margin: 0;
 }
 
-/* Ensure background color fills entire screen including safe areas */
-html::before {
+/* Fill the entire screen including safe areas with black background */
+html::before,
+html::after {
   content: '';
   position: fixed;
-  top: 0;
   left: 0;
   right: 0;
-  bottom: 0;
   background: #000;
-  z-index: -1;
+  z-index: -9999;
   pointer-events: none;
+}
+
+html::before {
+  top: -100px;
+  height: calc(100% + 200px);
+}
+
+html::after {
+  bottom: -100px;
+  height: 200px;
 }
 
 /* Allow text selection in specific areas */
@@ -234,7 +243,19 @@ button, a, .conversation-item, .prompt-chip {
   transition: none;
 }
 
-/* Safe area handled in padding now, no need for pseudo-element */
+/* Extend background color into safe area to eliminate black void */
+.input-container::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  /* Extend well below to cover safe area */
+  height: calc(var(--safe-bottom) + 50px);
+  background: #000;
+  z-index: -1;
+  pointer-events: none;
+}
 
 /* When keyboard is open on iOS */
 body.keyboard-open .input-container {
@@ -1509,15 +1530,12 @@ button.primary:active { transform: translateY(0); }
     min-height: 100dvh;
     min-height: -webkit-fill-available;
     overscroll-behavior: none;
-    /* Extend background to cover entire screen including safe areas */
     background: #000 !important;
   }
   
-  /* Ensure #app fills the entire safe area */
+  /* Ensure #app fills the entire screen */
   #app {
     height: 100%;
-    /* Use min-height to account for safe areas */
-    min-height: calc(100% + env(safe-area-inset-bottom, 0px));
     background: #000;
   }
   
@@ -1532,6 +1550,16 @@ button.primary:active { transform: translateY(0); }
   
   .sidebar {
     height: 100%;
+  }
+  
+  /* Critical: Fill the bottom safe area with app background color */
+  .input-container {
+    /* Background extends into safe area */
+    background: #000;
+  }
+  
+  .sidebar-footer {
+    background: var(--bg-sidebar);
   }
 }
 
