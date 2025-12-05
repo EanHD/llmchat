@@ -109,28 +109,22 @@ export function pluralize(word, count) {
 /**
  * Generate title from text
  */
-export function generateTitle(text, maxLength = 50) {
+export function generateTitle(text, maxLength = 30) {
   // Remove extra whitespace
   const cleaned = text.trim().replace(/\s+/g, ' ');
   
-  // Truncate at sentence or word boundary
+  // Hard limit - never exceed maxLength
   if (cleaned.length <= maxLength) {
     return cleaned;
   }
 
-  // Try to break at sentence
-  const sentences = cleaned.match(/[^.!?]+[.!?]+/g);
-  if (sentences && sentences[0] && sentences[0].length <= maxLength) {
-    return sentences[0].trim();
-  }
-
-  // Break at word boundary
+  // Break at word boundary within limit
   const truncated = cleaned.substring(0, maxLength);
   const lastSpace = truncated.lastIndexOf(' ');
   
-  if (lastSpace > maxLength * 0.7) {
+  if (lastSpace > maxLength * 0.5) {
     return truncated.substring(0, lastSpace) + '...';
   }
 
-  return truncated + '...';
+  return truncated.substring(0, maxLength - 3) + '...';
 }

@@ -6,6 +6,7 @@
 export const DEFAULT_SETTINGS = {
   apiEndpoint: 'https://api.eanhd.com',
   model: 'granite-local', // Default model
+  agentModel: 'x-ai/grok-3-fast', // Model for agent mode
   theme: 'auto', // 'light', 'dark', 'auto'
   streaming: true,
   markdown: true,

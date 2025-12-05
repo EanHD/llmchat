@@ -95,7 +95,6 @@ export class KaiAPIClient {
    * Send chat completion request (streaming)
    */
   async *streamMessage(messages, options = {}) {
-    console.log('[API] streamMessage called with options:', options);
     const {
       model = 'granite-local',
       temperature = 0.7,
@@ -113,8 +112,6 @@ export class KaiAPIClient {
     if (maxTokens) {
       payload.max_tokens = maxTokens;
     }
-    
-    console.log('[API] Request payload:', payload);
 
     // Create AbortController for timeout if not provided
     const controller = options.signal ? null : new AbortController();
@@ -126,7 +123,6 @@ export class KaiAPIClient {
     }, timeout);
 
     try {
-      console.log('[API] Sending fetch request to:', `${this.baseURL}/v1/chat/completions`);
       const response = await fetch(`${this.baseURL}/v1/chat/completions`, {
         method: 'POST',
         headers: {
@@ -138,13 +134,11 @@ export class KaiAPIClient {
         signal
       });
 
-      console.log('[API] Response received, status:', response.status);
       if (!response.ok) {
         const error = await response.text();
         throw new Error(`API error: ${response.status} - ${error}`);
       }
 
-      console.log('[API] Starting to read response stream');
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let buffer = '';
@@ -154,15 +148,12 @@ export class KaiAPIClient {
       try {
         while (true) {
           const { done, value } = await reader.read();
-          console.log('[API] Read chunk, done:', done, 'bytes:', value?.length);
           
           if (done) break;
 
           lastChunkTime = Date.now();
           buffer += decoder.decode(value, { stream: true });
           const lines = buffer.split('\n');
-          
-          console.log('[API] Buffer now has', lines.length, 'lines');
           
           // Keep the last incomplete line in buffer
           buffer = lines.pop() || '';
@@ -174,8 +165,6 @@ export class KaiAPIClient {
               continue;
             }
             
-            console.log('[API] Processing line:', trimmed.substring(0, 100));
-            
             // Handle various SSE formats
             let data = trimmed;
             
@@ -186,20 +175,15 @@ export class KaiAPIClient {
             
             // Skip empty data or non-data lines
             if (!data || (!data.startsWith('{') && data !== '[DONE]')) {
-              console.log('[API] Skipping non-JSON line:', data.substring(0, 50));
               continue;
             }
-            
-            console.log('[API] Extracted data:', data.substring(0, 100));
 
             if (data === '[DONE]') {
-              console.log('[API] Stream complete - received [DONE]');
               return;
             }
 
             try {
               const parsed = JSON.parse(data);
-              console.log('[API] Parsed SSE chunk:', parsed);
               
               // Handle different response formats
               if (parsed.choices && parsed.choices[0]) {
@@ -207,24 +191,21 @@ export class KaiAPIClient {
                 
                 // Check for delta (streaming format)
                 if (choice.delta && choice.delta.content !== undefined) {
-                  console.log('[API] Yielding delta:', choice.delta);
                   yield choice.delta;
                 }
                 // Fallback: check for message (some servers use this)
                 else if (choice.message && choice.message.content) {
-                  console.log('[API] Yielding message as delta:', choice.message);
                   yield { content: choice.message.content };
                 }
               }
             } catch (e) {
-              console.error('[API] Failed to parse SSE JSON:', data.substring(0, 200), 'Error:', e.message);
               // Continue processing other chunks instead of failing completely
             }
           }
           
           // Check for chunk timeout
           if (Date.now() - lastChunkTime > CHUNK_TIMEOUT) {
-            throw new Error('Stream timeout: no data received for 10 seconds');
+            throw new Error('Stream timeout: no data received for 30 seconds');
           }
         }
       } finally {
@@ -234,7 +215,6 @@ export class KaiAPIClient {
       if (error.name === 'AbortError') {
         throw new Error('Request timed out after 60 seconds');
       }
-      console.error('[API] Stream error:', error);
       throw error;
     } finally {
       clearTimeout(timeoutId);

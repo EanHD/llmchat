@@ -207,6 +207,23 @@ export class SettingsUI {
       modelSelect
     ));
 
+    // Agent Model
+    const agentModelInput = createElement('input', {
+      type: 'text',
+      className: 'setting-input',
+      value: settings.agentModel || DEFAULT_SETTINGS.agentModel,
+      placeholder: 'x-ai/grok-3-fast',
+      onInput: (e) => {
+        this.saveSetting('agentModel', e.target.value.trim() || DEFAULT_SETTINGS.agentModel);
+      }
+    });
+
+    this.settingsContent.appendChild(this.createSettingGroup(
+      'Agent Model',
+      'Model used for Agent mode (CLI-style coding assistant)',
+      agentModelInput
+    ));
+
     // Theme
     const themeSelect = createElement('select', {
       className: 'setting-input',

@@ -109,6 +109,14 @@ export class SidebarUI {
    * Switch to a conversation
    */
   async switchConversation(conversationId) {
+    // If currently streaming, save progress before switching
+    const isStreaming = state.getState('isStreaming');
+    if (isStreaming) {
+      // Let the stream continue in background - don't abort
+      // Just detach from UI updates
+      state.setStreaming(false);
+    }
+    
     state.setCurrentConversation(conversationId);
 
     // Close sidebar on mobile

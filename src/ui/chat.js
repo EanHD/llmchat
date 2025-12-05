@@ -13,6 +13,7 @@ import { markdownRenderer } from './markdown.js';
 import { $, clearElement } from '../utils/dom.js';
 import { generateTitle } from '../utils/format.js';
 import { shortcuts } from '../core/shortcuts.js';
+import { agentMode } from '../agent/agent-mode.js';
 
 export class ChatUI {
   constructor() {
@@ -308,12 +309,7 @@ export class ChatUI {
     }
 
     // Expand personal shortcuts
-    const originalContent = content;
     content = shortcuts.expand(content);
-    if (content !== originalContent) {
-      // Show what was expanded
-      console.log(`Shortcut expanded: "${originalContent}" → "${content}"`);
-    }
 
     // Haptic feedback
     if (navigator.vibrate) {
@@ -329,7 +325,7 @@ export class ChatUI {
       
       if (!conversationId) {
         const conversation = new Conversation({
-          title: generateTitle(content, 50),
+          title: generateTitle(content, 30),
           model: null // Will be set when we get response
         });
         
@@ -386,8 +382,10 @@ export class ChatUI {
       // Get settings
       const settings = await storage.getAllSettings();
 
-      // Check if streaming is enabled
-      if (settings.streaming) {
+      // Check if agent mode is active
+      if (agentMode.active) {
+        await this.agentResponse(assistantMessage, content, conversationId, settings);
+      } else if (settings.streaming) {
         await this.streamResponse(assistantMessage, apiMessages, settings);
       } else {
         await this.fetchResponse(assistantMessage, apiMessages, settings);
@@ -403,7 +401,7 @@ export class ChatUI {
         if (conversation.title === 'New Chat' && currentMessages.length >= 2) {
           const firstUserMsg = currentMessages.find(m => m.role === MessageRole.USER);
           if (firstUserMsg) {
-            conversation.title = generateTitle(firstUserMsg.content, 60);
+            conversation.title = generateTitle(firstUserMsg.content, 30);
           }
         }
         
@@ -465,6 +463,8 @@ export class ChatUI {
 
   /**
    * Stream response (streaming)
+   * Note: Streaming continues in background even if user switches conversations.
+   * The stream saves progress to storage periodically and on completion.
    */
   async streamResponse(assistantMessage, apiMessages, settings) {
     assistantMessage.updateStatus(MessageStatus.STREAMING);
@@ -472,11 +472,16 @@ export class ChatUI {
     
     state.setStreaming(true);
 
+    // Save more frequently to ensure progress isn't lost
     let lastSaveTime = Date.now();
     let lastRenderTime = Date.now();
-    const SAVE_INTERVAL = 2000;
+    const SAVE_INTERVAL = 1000; // Save every 1 second
     const RENDER_INTERVAL = 100;
     
+    // Track the conversation ID so we can detect if user switched away
+    const originalConversationId = state.getState('currentConversationId');
+    
+    // Create AbortController but don't abort on conversation switch
     this.abortController = new AbortController();
 
     try {
@@ -494,8 +499,11 @@ export class ChatUI {
           assistantMessage.appendContent(delta.content);
           
           const now = Date.now();
+          const currentConversationId = state.getState('currentConversationId');
+          const isStillActive = currentConversationId === originalConversationId;
           
-          if (now - lastRenderTime >= RENDER_INTERVAL) {
+          // Only update UI if still viewing this conversation
+          if (isStillActive && now - lastRenderTime >= RENDER_INTERVAL) {
             await this.updateMessageContent(assistantMessage.id, assistantMessage.content);
             
             if (this.isAtBottom()) {
@@ -505,6 +513,7 @@ export class ChatUI {
             lastRenderTime = now;
           }
           
+          // Always save to storage, regardless of which conversation is active
           if (now - lastSaveTime >= SAVE_INTERVAL) {
             try {
               await storage.saveMessage(assistantMessage.toJSON());
@@ -516,29 +525,53 @@ export class ChatUI {
         }
       }
 
-      await this.updateMessageContent(assistantMessage.id, assistantMessage.content);
+      // Stream completed successfully
+      const currentConversationId = state.getState('currentConversationId');
+      const isStillActive = currentConversationId === originalConversationId;
+      
+      if (isStillActive) {
+        await this.updateMessageContent(assistantMessage.id, assistantMessage.content);
+      }
+      
       assistantMessage.updateStatus(MessageStatus.COMPLETE);
       await storage.saveMessage(assistantMessage.toJSON());
-      state.updateMessage(assistantMessage.id, assistantMessage.toJSON());
+      
+      if (isStillActive) {
+        state.updateMessage(assistantMessage.id, assistantMessage.toJSON());
+      }
 
     } catch (error) {
       console.error('Streaming error:', error);
       
+      // Don't mark as error if user just switched conversations
+      const currentConversationId = state.getState('currentConversationId');
+      const userSwitchedAway = currentConversationId !== originalConversationId;
+      
       if (error.name === 'AbortError' || error.message.includes('aborted')) {
-        assistantMessage.updateStatus(MessageStatus.ERROR);
-        assistantMessage.content += '\n\n[Streaming stopped by user]';
+        // Only append error message if user explicitly stopped
+        if (!userSwitchedAway) {
+          assistantMessage.updateStatus(MessageStatus.ERROR);
+          assistantMessage.content += '\n\n[Streaming stopped by user]';
+        } else {
+          // User switched away - mark as complete with current content
+          assistantMessage.updateStatus(MessageStatus.COMPLETE);
+        }
       } else {
         assistantMessage.updateStatus(MessageStatus.ERROR);
         assistantMessage.content += '\n\n[Streaming interrupted: ' + error.message + ']';
       }
       
+      // Always save final state
       try {
         await storage.saveMessage(assistantMessage.toJSON());
       } catch (saveError) {
         console.error('Failed to save error state:', saveError);
       }
       
-      state.updateMessage(assistantMessage.id, assistantMessage.toJSON());
+      // Only update state if still on this conversation
+      if (!userSwitchedAway) {
+        state.updateMessage(assistantMessage.id, assistantMessage.toJSON());
+      }
       
       if (error.name !== 'AbortError' && !error.message.includes('aborted')) {
         throw error;
@@ -556,6 +589,118 @@ export class ChatUI {
       this.abortController.abort();
       this.abortController = null;
     }
+    // Also stop agent mode if active
+    agentMode.stop();
+  }
+
+  /**
+   * Agent mode response - CLI-style sequential updates
+   */
+  async agentResponse(assistantMessage, userContent, conversationId, settings) {
+    assistantMessage.updateStatus(MessageStatus.STREAMING);
+    state.updateMessage(assistantMessage.id, assistantMessage.toJSON());
+    state.setStreaming(true);
+
+    let agentContent = '';
+    let lastSaveTime = Date.now();
+    const SAVE_INTERVAL = 1000; // Save every second
+    const originalConversationId = state.getState('currentConversationId');
+    
+    try {
+      // Process agent messages as they stream in
+      for await (const agentMsg of agentMode.processMessage(userContent, conversationId)) {
+        // Format the agent message and append to content
+        const formatted = agentMode.formatMessage(agentMsg);
+        agentContent += formatted;
+        
+        // Update the message content
+        assistantMessage.content = agentContent;
+        
+        const currentConversationId = state.getState('currentConversationId');
+        const isStillActive = currentConversationId === originalConversationId;
+        
+        // Only update UI if still viewing this conversation
+        if (isStillActive) {
+          await this.updateAgentMessageContent(assistantMessage.id, agentContent);
+          
+          // Auto-scroll if near bottom
+          if (this.isAtBottom()) {
+            this.scrollToBottom();
+          }
+        }
+        
+        // Always save periodically
+        const now = Date.now();
+        if (now - lastSaveTime >= SAVE_INTERVAL) {
+          try {
+            await storage.saveMessage(assistantMessage.toJSON());
+            lastSaveTime = now;
+          } catch (saveError) {
+            console.error('Failed to save agent message:', saveError);
+          }
+        }
+      }
+
+      // Mark as complete
+      assistantMessage.updateStatus(MessageStatus.COMPLETE);
+      await storage.saveMessage(assistantMessage.toJSON());
+      
+      const currentConversationId = state.getState('currentConversationId');
+      if (currentConversationId === originalConversationId) {
+        state.updateMessage(assistantMessage.id, assistantMessage.toJSON());
+      }
+
+    } catch (error) {
+      console.error('Agent error:', error);
+      
+      const currentConversationId = state.getState('currentConversationId');
+      const userSwitchedAway = currentConversationId !== originalConversationId;
+      
+      if (error.name === 'AbortError' || error.message.includes('aborted')) {
+        if (!userSwitchedAway) {
+          assistantMessage.content += agentMode.formatMessage({
+            type: 'cancelled',
+            content: '⏹ Stopped by user'
+          });
+          assistantMessage.updateStatus(MessageStatus.ERROR);
+        } else {
+          assistantMessage.updateStatus(MessageStatus.COMPLETE);
+        }
+      } else {
+        assistantMessage.content += agentMode.formatMessage({
+          type: 'error',
+          content: `❌ Error: ${error.message}`
+        });
+        assistantMessage.updateStatus(MessageStatus.ERROR);
+      }
+      
+      await storage.saveMessage(assistantMessage.toJSON());
+      
+      if (!userSwitchedAway) {
+        state.updateMessage(assistantMessage.id, assistantMessage.toJSON());
+      }
+      
+      if (error.name !== 'AbortError' && !error.message.includes('aborted')) {
+        throw error;
+      }
+    }
+  }
+
+  /**
+   * Update agent message content (renders HTML directly)
+   */
+  async updateAgentMessageContent(messageId, htmlContent) {
+    const messageEl = this.messagesContainer.querySelector(`[data-message-id="${messageId}"]`);
+    if (!messageEl) return;
+
+    const contentEl = messageEl.querySelector('.message-content');
+    if (!contentEl) return;
+
+    // For agent mode, we render HTML directly
+    contentEl.innerHTML = htmlContent;
+    
+    // Add agent response class
+    messageEl.classList.add('agent-response');
   }
 
   /**
@@ -615,7 +760,7 @@ export class ChatUI {
              this.addMessageActions(contentEl);
           } else {
             if (message.status === 'streaming' && !message.content) {
-               contentEl.innerHTML = '<div class="thinking-dots"><div class="thinking-dot"></div><div class="thinking-dot"></div><div class="thinking-dot"></div></div>';
+               contentEl.innerHTML = '<div class="thinking-indicator"><span class="thinking-text">Kai is thinking</span><span class="thinking-dots-inline"><span class="dot"></span><span class="dot"></span><span class="dot"></span></span></div>';
             } else if (contentEl.textContent !== message.content) {
                contentEl.textContent = message.content;
             }
@@ -648,8 +793,9 @@ export class ChatUI {
     const settings = await storage.getAllSettings();
     const markdownEnabled = settings.markdown !== false;
 
+    // Show thinking indicator when streaming but no content yet
     if (!content && state.getState('isStreaming')) {
-      contentEl.innerHTML = '<div class="thinking-dots"><div class="thinking-dot"></div><div class="thinking-dot"></div><div class="thinking-dot"></div></div>';
+      contentEl.innerHTML = '<div class="thinking-indicator"><span class="thinking-text">Kai is thinking</span><span class="thinking-dots-inline"><span class="dot"></span><span class="dot"></span><span class="dot"></span></span></div>';
       return;
     }
 

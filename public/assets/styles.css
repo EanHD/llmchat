@@ -6,6 +6,10 @@
 
 /* CSS Variables */
 :root {
+  /* Dynamic viewport height - set by JS for iOS keyboard handling */
+  --app-height: 100vh;
+  --keyboard-offset: 0px;
+  
   /* Colors */
   --bg-primary: #000000;
   --bg-sidebar: #0f0f18;
@@ -51,7 +55,7 @@
 
 html {
   height: 100%;
-  height: 100dvh;
+  height: var(--app-height);
   background-color: #000000;
   overflow: hidden;
   overscroll-behavior: none;
@@ -63,7 +67,7 @@ html {
 
 body {
   height: 100%;
-  height: 100dvh;
+  height: var(--app-height);
   background-color: #000000 !important;
   color: var(--text-primary);
   font-family: var(--font-sans);
@@ -117,7 +121,7 @@ button, a, .conversation-item, .prompt-chip {
 #app { 
   display: flex; 
   height: 100%;
-  height: 100dvh;
+  height: var(--app-height);
   width: 100%; 
   overflow: hidden;
   overscroll-behavior: none;
@@ -171,7 +175,7 @@ button, a, .conversation-item, .prompt-chip {
 
 .sidebar-footer { 
   padding: 1rem; 
-  padding-bottom: 1.5rem; /* Fixed padding as requested */
+  padding-bottom: calc(1rem + env(safe-area-inset-bottom));
   border-top: 1px solid var(--border-color); 
   display: flex; 
   justify-content: space-between; 
@@ -298,10 +302,14 @@ button, a, .conversation-item, .prompt-chip {
 }
 
 .app-title {
-  font-size: 26px;
-  font-weight: 700;
+  font-size: 18px;
+  font-weight: 600;
   color: #fff;
-  line-height: 1;
+  line-height: 1.2;
+  max-width: 200px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .icon-btn-ghost {
@@ -322,12 +330,10 @@ button, a, .conversation-item, .prompt-chip {
   overflow-y: auto;
   overflow-x: hidden;
   padding-top: calc(60px + env(safe-area-inset-top));
-  padding-bottom: calc(100px + env(safe-area-inset-bottom));
+  padding-bottom: calc(80px + env(safe-area-inset-bottom) + var(--keyboard-offset, 0px));
   scroll-behavior: smooth;
   -webkit-overflow-scrolling: touch;
   overscroll-behavior-y: contain;
-  /* Momentum scrolling like native */
-  scroll-snap-type: y proximity;
 }
 
 .messages {
@@ -405,58 +411,66 @@ button, a, .conversation-item, .prompt-chip {
   color: #fff;
 }
 
-/* Input Area - The "Grok" Pill */
+/* Input Area - Fixed to bottom, moves with keyboard */
 .input-container {
-  position: absolute;
-  bottom: 0; left: 0; right: 0;
-  padding: 16px;
-  padding-bottom: calc(16px + env(safe-area-inset-bottom));
+  position: fixed;
+  bottom: 0; 
+  left: 0; 
+  right: 0;
+  padding: 12px 16px;
+  padding-bottom: calc(12px + env(safe-area-inset-bottom));
   background: rgba(0,0,0,0.95);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
-  z-index: 20;
+  border-top: 1px solid rgba(255,255,255,0.08);
+  z-index: 50;
   display: flex;
   justify-content: center;
+  /* Transform for keyboard - controlled by JS */
+  transform: translateY(calc(var(--keyboard-offset, 0px) * -1));
+  transition: transform 0.15s ease-out;
+  will-change: transform;
 }
 
 .input-wrapper {
   width: 100%;
   max-width: 768px;
-  background: #1a1a1a; /* Dark grey pill */
-  border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 28px; /* Pill shape */
+  background: rgba(30, 30, 35, 0.95);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: var(--radius-pill);
   padding: 8px 16px;
   display: flex;
-  align-items: center; /* Vertically centered */
-  gap: 12px;
-  transition: border-color 0.2s;
-  min-height: 56px;
+  align-items: center;
+  gap: 10px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  min-height: 52px;
 }
 
 .input-wrapper:focus-within {
-  border-color: rgba(255,255,255,0.2);
+  border-color: rgba(255,255,255,0.15);
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.05);
 }
 
 #message-input {
   flex: 1;
   background: transparent;
   border: none;
-  color: #fff;
+  color: #f9fafb;
   font-size: 16px;
-  padding: 10px 0;
-  max-height: 150px;
+  padding: 8px 0;
+  max-height: 120px;
   resize: none;
-  line-height: 1.5;
+  line-height: 1.4;
   align-self: center;
 }
-#message-input::placeholder { color: #666; }
+#message-input::placeholder { color: rgba(148, 163, 184, 0.7); }
 #message-input:focus { outline: none; }
 
 .input-icon-btn {
   width: 36px; height: 36px;
   border-radius: 50%;
   display: flex; align-items: center; justify-content: center;
-  color: #888; /* Pure subtle gray */
+  color: rgba(148, 163, 184, 0.9);
   background: transparent;
   transition: all 0.2s;
   flex-shrink: 0;
@@ -537,11 +551,36 @@ button, a, .conversation-item, .prompt-chip {
   transform: translateY(-2px);
 }
 
+/* Scroll to bottom button */
+.scroll-to-bottom-btn {
+  position: fixed;
+  right: 20px;
+  bottom: calc(90px + env(safe-area-inset-bottom) + var(--keyboard-offset, 0px));
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(30, 30, 35, 0.95);
+  border: 1px solid rgba(255,255,255,0.1);
+  color: #888;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 40;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+.scroll-to-bottom-btn:hover {
+  background: rgba(40, 40, 45, 0.95);
+  color: #fff;
+}
+
 /* FAB */
 .fab-new-chat {
-  position: absolute;
+  position: fixed;
   right: 20px;
-  bottom: 100px; /* Above input bar */
+  bottom: calc(140px + env(safe-area-inset-bottom) + var(--keyboard-offset, 0px));
   width: 56px; height: 56px;
   border-radius: 50%;
   background: var(--accent-primary);
@@ -549,7 +588,7 @@ button, a, .conversation-item, .prompt-chip {
   display: flex; align-items: center; justify-content: center;
   box-shadow: 0 4px 12px rgba(0,123,255,0.4);
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-  z-index: 30;
+  z-index: 40;
 }
 .fab-new-chat:active { transform: scale(0.9); }
 .fab-new-chat.hidden { opacity: 0; transform: translateY(20px) scale(0.8); pointer-events: none; }
@@ -566,10 +605,24 @@ button, a, .conversation-item, .prompt-chip {
   .sidebar.open { transform: translateX(0); }
   
   .mobile-only { display: flex; }
-  .empty-state-title { font-size: 32px; }
+  .empty-state-title { font-size: 28px; }
   
-  .input-container { padding: 12px; padding-bottom: calc(20px + env(safe-area-inset-bottom)); }
-  .input-wrapper { padding: 6px 12px; }
+  .input-container { 
+    padding: 10px 12px; 
+    padding-bottom: calc(10px + env(safe-area-inset-bottom)); 
+  }
+  .input-wrapper { 
+    padding: 6px 12px; 
+    min-height: 48px;
+  }
+  
+  .messages {
+    padding: 0 1rem;
+  }
+  
+  .message-content {
+    font-size: 15px;
+  }
 }
 
 @media (min-width: 769px) {
@@ -603,7 +656,51 @@ button, a, .conversation-item, .prompt-chip {
   100% { background-position: 200% 0; }
 }
 
-/* Thinking Dots */
+/* Thinking Indicator - "Kai is thinking" */
+.thinking-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 0;
+  color: var(--text-secondary);
+}
+
+.thinking-text {
+  font-size: 14px;
+  font-style: italic;
+  color: var(--text-secondary);
+}
+
+.thinking-dots-inline {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+}
+
+.thinking-dots-inline .dot {
+  width: 6px;
+  height: 6px;
+  background: var(--text-secondary);
+  border-radius: 50%;
+  animation: thinkingPulse 1.4s infinite ease-in-out;
+}
+
+.thinking-dots-inline .dot:nth-child(1) { animation-delay: 0s; }
+.thinking-dots-inline .dot:nth-child(2) { animation-delay: 0.2s; }
+.thinking-dots-inline .dot:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes thinkingPulse {
+  0%, 60%, 100% { 
+    transform: translateY(0);
+    opacity: 0.4;
+  }
+  30% { 
+    transform: translateY(-4px);
+    opacity: 1;
+  }
+}
+
+/* Legacy Thinking Dots (for backwards compat) */
 .thinking-dots, .sending-dots {
   display: inline-flex;
   gap: 5px;
@@ -947,15 +1044,9 @@ button.primary:active {
 
 /* PWA Specific Adjustments for iOS */
 @media (display-mode: standalone) {
-  /* Ensure proper viewport handling */
-  html, body {
-    height: 100%;
-    height: -webkit-fill-available;
-  }
-  
-  #app {
-    height: 100%;
-    height: -webkit-fill-available;
+  /* Use JS-controlled height */
+  html, body, #app {
+    height: var(--app-height);
   }
   
   .panel-header {
@@ -965,7 +1056,7 @@ button.primary:active {
   
   .sidebar {
     padding-top: env(safe-area-inset-top) !important;
-    height: 100% !important;
+    height: var(--app-height) !important;
   }
   
   /* Header adjusts for notch */
@@ -979,25 +1070,18 @@ button.primary:active {
   
   .chat-container {
     padding-top: calc(56px + env(safe-area-inset-top)) !important;
-    padding-bottom: calc(90px + env(safe-area-inset-bottom)) !important;
-  }
-  
-  /* Input sits above home indicator */
-  .input-container {
-    padding-bottom: calc(12px + env(safe-area-inset-bottom)) !important;
+    padding-bottom: calc(80px + env(safe-area-inset-bottom) + var(--keyboard-offset, 0px)) !important;
   }
 }
 
-/* iOS Keyboard Open State */
+/* iOS Keyboard handling - managed by JS via CSS variables */
 @supports (-webkit-touch-callout: none) {
-  /* iOS-specific: when keyboard is visible, visualViewport shrinks */
-  body.keyboard-open .input-container {
-    position: fixed;
-    bottom: 0;
-    padding-bottom: 8px !important;
+  .input-container {
+    /* Transform is applied via --keyboard-offset CSS variable set by JS */
   }
   
-  body.keyboard-open .chat-container {
-    padding-bottom: 80px !important;
+  /* When keyboard is open, reduce safe area padding since keyboard covers it */
+  body.keyboard-open .input-container {
+    padding-bottom: 8px !important;
   }
 }

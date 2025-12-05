@@ -1,0 +1,303 @@
+/**
+ * Agent Mode Styles
+ * CLI-like experience within chat UI
+ */
+
+/* Agent Mode Toggle Button */
+#agent-mode-toggle {
+  position: relative;
+}
+
+#agent-mode-toggle.active {
+  color: #7ee787 !important;
+  background: rgba(126, 231, 135, 0.1) !important;
+}
+
+#agent-mode-toggle.active::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 4px;
+  height: 4px;
+  background: #7ee787;
+  border-radius: 50%;
+}
+
+/* Agent Mode Body Class */
+body.agent-mode .input-wrapper {
+  border-color: rgba(126, 231, 135, 0.3);
+}
+
+body.agent-mode .input-wrapper:focus-within {
+  border-color: rgba(126, 231, 135, 0.5);
+  box-shadow: 0 0 0 2px rgba(126, 231, 135, 0.1);
+}
+
+body.agent-mode .send-btn {
+  background: #238636 !important;
+}
+
+body.agent-mode .send-btn:hover {
+  background: #2ea043 !important;
+}
+
+/* Agent Steps - CLI-like output */
+.agent-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 6px 0;
+  font-size: 14px;
+  line-height: 1.5;
+  animation: agentStepFade 0.2s ease-out;
+}
+
+@keyframes agentStepFade {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.agent-icon {
+  flex-shrink: 0;
+  width: 20px;
+  text-align: center;
+  font-size: 14px;
+}
+
+.agent-text {
+  flex: 1;
+  color: #e6edf3;
+}
+
+/* Thinking State */
+.agent-thinking {
+  color: #8b949e;
+}
+
+.agent-thinking .agent-text {
+  color: #8b949e;
+  font-style: italic;
+}
+
+.agent-thinking .agent-icon {
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+/* Planning */
+.agent-planning {
+  color: #a5d6ff;
+}
+
+.agent-planning .agent-text {
+  color: #a5d6ff;
+}
+
+/* Tool Execution */
+.agent-tool {
+  color: #d2a8ff;
+}
+
+.agent-tool .agent-text {
+  color: #d2a8ff;
+}
+
+/* Command */
+.agent-command {
+  font-family: 'SF Mono', 'Menlo', 'Monaco', 'Courier New', monospace;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 8px 12px;
+  border-radius: 6px;
+  margin: 4px 0;
+}
+
+.agent-prompt {
+  color: #7ee787;
+  margin-right: 8px;
+  font-weight: 600;
+}
+
+.agent-cmd {
+  color: #e6edf3;
+  background: transparent;
+  padding: 0;
+}
+
+/* Output */
+.agent-output,
+.agent-tool-result {
+  margin: 4px 0;
+}
+
+.agent-output-text,
+.agent-output pre {
+  font-family: 'SF Mono', 'Menlo', 'Monaco', 'Courier New', monospace;
+  font-size: 12px;
+  background: rgba(0, 0, 0, 0.3);
+  padding: 8px 12px;
+  border-radius: 6px;
+  overflow-x: auto;
+  color: #8b949e;
+  white-space: pre-wrap;
+  word-break: break-all;
+  margin: 0;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+/* File Operations */
+.agent-file {
+  color: #ffa657;
+}
+
+.agent-file .agent-text {
+  color: #ffa657;
+}
+
+/* Code Block */
+.agent-code {
+  margin: 8px 0;
+}
+
+.agent-code pre {
+  background: #0d1117;
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  padding: 12px;
+  overflow-x: auto;
+  margin: 0;
+}
+
+.agent-code code {
+  font-family: 'SF Mono', 'Menlo', 'Monaco', 'Courier New', monospace;
+  font-size: 13px;
+  color: #e6edf3;
+  background: transparent;
+  padding: 0;
+}
+
+/* Status States */
+.agent-error {
+  color: #f85149;
+}
+
+.agent-error .agent-text {
+  color: #f85149;
+}
+
+.agent-success {
+  color: #7ee787;
+}
+
+.agent-success .agent-text {
+  color: #7ee787;
+}
+
+.agent-complete {
+  color: #7ee787;
+  font-weight: 500;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  margin-top: 8px;
+}
+
+.agent-complete .agent-text {
+  color: #7ee787;
+}
+
+.agent-cancelled {
+  color: #8b949e;
+  font-style: italic;
+}
+
+/* Progress Bar */
+.agent-progress {
+  flex-direction: column;
+  gap: 4px;
+}
+
+.agent-progress-bar {
+  width: 100%;
+  height: 4px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.agent-progress-fill {
+  height: 100%;
+  background: #238636;
+  border-radius: 2px;
+  transition: width 0.3s ease;
+}
+
+/* Content */
+.agent-content {
+  color: #e6edf3;
+  line-height: 1.6;
+}
+
+.agent-content-text {
+  color: #e6edf3;
+  white-space: pre-wrap;
+}
+
+/* Agent Message Container */
+.message.assistant.agent-response .message-content {
+  background: transparent;
+  padding: 0;
+}
+
+/* Streaming indicator in agent mode */
+body.agent-mode .message.streaming .message-content::after {
+  content: '▊';
+  animation: cursorBlink 1s infinite;
+  color: #7ee787;
+  margin-left: 2px;
+}
+
+@keyframes cursorBlink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+/* Mobile adjustments */
+@media (max-width: 768px) {
+  .agent-step {
+    font-size: 13px;
+  }
+  
+  .agent-output-text,
+  .agent-output pre {
+    font-size: 11px;
+    max-height: 150px;
+  }
+  
+  .agent-code pre {
+    padding: 8px;
+  }
+  
+  .agent-code code {
+    font-size: 12px;
+  }
+}
+
+/* Agent mode indicator in header */
+body.agent-mode .app-title::after {
+  content: ' [Agent]';
+  font-size: 12px;
+  color: #7ee787;
+  font-weight: 400;
+}

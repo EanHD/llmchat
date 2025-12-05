@@ -12,7 +12,8 @@ import { MemoryUI } from './src/ui/memory.js';
 import { toast } from './src/ui/toast.js';
 import { DEFAULT_SETTINGS } from './src/models/settings.js';
 import { shortcuts } from './src/core/shortcuts.js';
-import { openCodeUI } from './src/opencode/ui.js';
+import { agentMode } from './src/agent/agent-mode.js';
+import { iosViewport } from './src/core/ios-viewport.js';
 
 class App {
   constructor() {
@@ -20,7 +21,6 @@ class App {
     this.sidebarUI = null;
     this.settingsUI = null;
     this.memoryUI = null;
-    this.openCodeUI = null;
     this.offlineBanner = null;
   }
 
@@ -50,9 +50,8 @@ class App {
       this.settingsUI = new SettingsUI();
       this.memoryUI = new MemoryUI();
 
-      // Initialize OpenCode IDE
-      await openCodeUI.init();
-      this.setupOpenCodeToggle();
+      // Initialize Agent Mode toggle
+      this.setupAgentModeToggle();
 
       // Personal PWA features
       this.setupKeyboardShortcuts();
@@ -136,13 +135,13 @@ class App {
   }
 
   /**
-   * Setup OpenCode toggle button
+   * Setup Agent Mode toggle button
    */
-  setupOpenCodeToggle() {
-    const toggleBtn = document.getElementById('opencode-toggle');
+  setupAgentModeToggle() {
+    const toggleBtn = document.getElementById('agent-mode-toggle');
     if (toggleBtn) {
       toggleBtn.addEventListener('click', () => {
-        openCodeUI.toggle();
+        agentMode.toggle();
       });
     }
   }
@@ -166,59 +165,12 @@ class App {
     }, 60);
   }
 
+  /**
+   * Setup iOS-safe viewport height and keyboard handling
+   */
   setupKeyboardDetection() {
-    const input = document.getElementById('message-input');
-    const chatContainer = document.getElementById('chat-container');
-    if (!input) return;
-
-    // Use visualViewport API for reliable iOS keyboard detection
-    if (window.visualViewport) {
-      let lastHeight = window.visualViewport.height;
-      
-      window.visualViewport.addEventListener('resize', () => {
-        const currentHeight = window.visualViewport.height;
-        const heightDiff = lastHeight - currentHeight;
-        
-        // Keyboard opened (viewport shrunk significantly)
-        if (heightDiff > 100) {
-          document.body.classList.add('keyboard-open');
-          // Scroll to keep input visible
-          setTimeout(() => {
-            if (chatContainer) {
-              chatContainer.scrollTop = chatContainer.scrollHeight;
-            }
-          }, 100);
-        } 
-        // Keyboard closed
-        else if (heightDiff < -100) {
-          document.body.classList.remove('keyboard-open');
-        }
-        
-        lastHeight = currentHeight;
-      });
-    }
-
-    // Fallback for older browsers
-    const onFocus = () => {
-      document.body.classList.add('keyboard-open');
-      setTimeout(() => {
-        if (chatContainer) {
-          chatContainer.scrollTop = chatContainer.scrollHeight;
-        }
-      }, 300);
-    };
-
-    const onBlur = () => {
-      // Small delay to prevent flicker during keyboard switch
-      setTimeout(() => {
-        if (document.activeElement !== input) {
-          document.body.classList.remove('keyboard-open');
-        }
-      }, 100);
-    };
-
-    input.addEventListener('focus', onFocus);
-    input.addEventListener('blur', onBlur);
+    // Use the iOS viewport handler module
+    iosViewport.init();
   }
 
   /**
@@ -514,6 +466,12 @@ class App {
         state.setMessages([]);
         toast.success('New chat');
         if (input) input.focus();
+      }
+
+      // Cmd/Ctrl + E: Toggle agent mode
+      if (isMod && e.key === 'e' && !isTyping) {
+        e.preventDefault();
+        agentMode.toggle();
       }
 
       // Cmd/Ctrl + R: Regenerate last response

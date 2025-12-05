@@ -63,8 +63,12 @@ export function createMessageBubble(message) {
     className: 'message-content'
   });
   
-  // Set content as text or render markdown if enabled
-  messageContent.textContent = content || (status === 'streaming' ? '' : '...');
+  // Show thinking indicator for assistant messages that are streaming with no content yet
+  if (role === 'assistant' && status === 'streaming' && !content) {
+    messageContent.innerHTML = '<div class="thinking-indicator"><span class="thinking-text">Kai is thinking</span><span class="thinking-dots-inline"><span class="dot"></span><span class="dot"></span><span class="dot"></span></span></div>';
+  } else {
+    messageContent.textContent = content || '';
+  }
 
   const messageEl = createElement('div', {
     className: `message ${role} ${status || ''}`,
@@ -88,9 +92,6 @@ export function createMessageBubble(message) {
   messageEl.addEventListener('touchmove', () => {
     clearTimeout(pressTimer);
   });
-
-  // Add TTS button for assistant messages - REMOVED
-
 
   return messageEl;
 }
