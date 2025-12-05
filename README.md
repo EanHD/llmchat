@@ -1,166 +1,78 @@
-# LLM Chat Interface
+# Kai Chat
 
-A minimal, clean Progressive Web App (PWA) for chatting with AI models via the Kai LLM server.
+A native-feeling PWA chat interface for the Kai AI backend.
 
 ## Features
 
-- 💬 Real-time chat with AI models
-- 🎤 Voice mode with LiveKit, STT, and TTS
-- 🧹 Speech cleanup layer for natural conversation
-- 📱 Progressive Web App - install to home screen
-- 💾 Conversation history persists locally
-- 🌓 Dark mode support
-- 📡 SSE streaming responses
-- 🔒 Privacy-focused - all data stored locally
-- ⚡ Zero build step - vanilla JavaScript
+- 💬 Real-time streaming chat with AI
+- 🎤 Voice input (speech-to-text) with smart cleanup
+- 🔊 Text-to-speech playback with audio controls
+- 📎 File attachments + text context
+- 🔐 Password-protected access
+- 📱 iOS PWA with proper keyboard/safe-area handling
+- 💾 Offline-capable with local conversation storage
+- 🌙 Dark mode
 
 ## Quick Start
 
-### Prerequisites
-
-- Modern web browser (Chrome, Firefox, Safari)
-- Kai LLM server accessible at `https://api.eanhd.com` (via Cloudflare Tunnel)
-
-### Local Development
-
-1. Clone the repository:
-   ```bash
-   git clone <repository-url>
-   cd llmchat
-   ```
-
-2. Install dependencies (for testing only):
-   ```bash
-   npm install
-   ```
-
-3. Start local server:
-   ```bash
-   npm start
-   # OR
-   python3 -m http.server 8000 --directory public
-   # OR use VS Code Live Server
-   ```
-
-4. Open `http://localhost:8000` in your browser
-
-### Testing
-
 ```bash
-# Run unit tests
-npm test
+# Serve locally
+python3 -m http.server 8000 --directory public
 
-# Run E2E tests
-npm run test:e2e
-
-# Watch mode
-npm run test:watch
-
-# Coverage report
-npm run test:coverage
+# Open http://localhost:8000
+# Default password: ubuntu
 ```
 
-### Deployment
+## Deployment
 
-Deploys automatically to GitHub Pages via GitHub Actions on push to main branch.
+Auto-deploys to GitHub Pages via GitHub Actions on push.
 
-See [quickstart.md](specs/001-llm-chat-interface/quickstart.md) for detailed setup instructions.
+**Production URL**: `https://chat.eanhd.com` (via Cloudflare Tunnel)
+
+## Configuration
+
+Open Settings (gear icon) to configure:
+
+| Setting | Description |
+|---------|-------------|
+| API Endpoint | Kai server URL (default: `https://api.eanhd.com`) |
+| Custom Headers | For Cloudflare Access auth |
+| Theme | Light / Dark / Auto |
+| Streaming | Enable/disable streaming responses |
+
+## Password Protection
+
+Edit `public/src/core/auth.js` to change password:
+
+```bash
+# Generate new hash
+echo -n 'newpassword' | sha256sum
+
+# Update PASSWORD_HASH in auth.js
+```
 
 ## Project Structure
 
 ```
-llmchat/
-├── public/               # Static assets served directly
-│   ├── index.html       # Main HTML file
-│   ├── manifest.json    # PWA manifest
-│   ├── sw.js            # Service Worker
-│   ├── assets/          # CSS, images
-│   └── icons/           # PWA icons
-├── src/                 # JavaScript modules
-│   ├── core/            # Core infrastructure (storage, state, API)
-│   ├── models/          # Data models (Conversation, Message, Settings)
-│   ├── ui/              # UI components
-│   └── utils/           # Helper utilities
-├── tests/               # Test files
-│   ├── unit/            # Unit tests
-│   ├── integration/     # Integration tests
-│   └── e2e/             # End-to-end tests
-└── specs/               # Feature specifications
+public/
+├── index.html          # Main app
+├── app.js              # Entry point
+├── sw.js               # Service worker
+├── assets/styles.css   # All styles
+└── src/
+    ├── core/           # Storage, state, auth, API
+    ├── ui/             # Chat, sidebar, settings
+    └── agent/          # Agent mode (experimental)
 ```
 
 ## Tech Stack
 
-- **Language**: Vanilla JavaScript ES2020+
-- **Storage**: IndexedDB for conversations, LocalStorage for settings
-- **Markdown**: marked.js (5KB gzipped)
-- **Code Highlighting**: highlight.js (10KB gzipped)
-- **Testing**: Jest (unit), Playwright (E2E)
-- **Deployment**: GitHub Actions → GitHub Pages
-
-## User Stories
-
-1. **Basic Chat** (P1) - Send messages and receive AI responses
-2. **Conversation History** (P2) - View and persist conversation history
-3. **Multiple Conversations** (P2) - Create and switch between conversations
-4. **Edit/Delete** (P3) - Rename/delete conversations
-5. **Regenerate/Edit** (P3) - Regenerate responses, edit messages
-6. **Streaming** (P2) - Real-time word-by-word responses
-
-## Configuration
-
-Configure API endpoint and preferences in Settings panel:
-
-- **API Endpoint**: Kai server URL (default: `https://api.eanhd.com` via Cloudflare Tunnel)
-- **Custom Headers**: Add headers for Cloudflare Access if needed (e.g., `CF-Access-Client-Id`)
-- **Model**: AI model selection
-- **Theme**: Light/Dark/Auto
-- **Streaming**: Enable/disable streaming responses
-- **Auto-scroll**: Keep newest messages visible
-
-## Voice Mode
-
-Voice mode enables conversational interaction with speech input and output (100% browser-based):
-
-- **STT**: Web Speech API converts speech to text
-- **Speech Cleanup**: Removes fillers, false starts, and disfluencies automatically
-- **Kai Integration**: Cleaned text sent to Kai with voice-aware system prompt
-- **TTS**: Speech Synthesis API speaks responses
-- **No Backend Required**: Works fully on GitHub Pages
-
-See [SPEECH_CLEANUP.md](./SPEECH_CLEANUP.md) for details on how speech cleanup works.
-
-### Speech Cleanup Features
-
-The speech cleanup layer handles natural speech patterns:
-
-- ✅ Removes filler words (um, uh, like, you know)
-- ✅ Removes false starts (repeated words, stutters)
-- ✅ Removes laughter and noise artifacts
-- ✅ Normalizes punctuation
-- ✅ Calculates confidence scores
-- ✅ Asks for clarification when input is unclear
-
-This ensures that casual, natural speech doesn't confuse the AI or break functionality.
-
-## Privacy
-
-All data is stored locally in your browser:
-
-- Conversations and messages: IndexedDB
-- Settings and preferences: LocalStorage
-- No data sent to external servers except Kai LLM server
-
-## Browser Support
-
-- Chrome/Edge 90+
-- Firefox 88+
-- Safari 14+
-- Mobile browsers (iOS Safari, Chrome Mobile)
+- Vanilla JS (ES2020+)
+- IndexedDB (conversations)
+- LocalStorage (settings)
+- Web Speech API (STT/TTS)
+- marked.js + highlight.js
 
 ## License
 
 MIT
-
-## Contributing
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for development guidelines.
