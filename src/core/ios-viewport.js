@@ -1,248 +1,322 @@
 /**
- * iOS Viewport & Keyboard Handler v2.0
+ * iOS Viewport & Keyboard Handler v3.0
  * Bulletproof PWA keyboard handling for iOS Safari/WebKit
  * 
  * Key techniques from 2024/2025 research:
- * 1. Use visualViewport API to track actual visible area
- * 2. Position input using bottom offset, not transform (more stable)
- * 3. Lock body scroll to prevent rubber-banding
- * 4. Disable touch-move on non-scrollable areas
+ * 1. Use visualViewport API exclusively for keyboard detection
+ * 2. Use position: fixed + bottom for input bar (most stable)
+ * 3. Aggressive touch-action control to prevent dragging
+ * 4. Use dvh units where possible, JS fallback elsewhere
+ * 5. Account for viewport offset (iOS scrolls viewport on keyboard)
  */
 
 export class IOSViewportHandler {
   constructor() {
     this.chatContainer = null;
     this.inputArea = null;
+    this.main = null;
     this.input = null;
     this.contextInput = null;
     this.isKeyboardOpen = false;
-    this.initialHeight = 0;
+    this.baseHeight = 0;
     this.lastKeyboardHeight = 0;
     this.isIOS = false;
     this.isPWA = false;
+    this.rafId = null;
+    this.inputBarHeight = 0;
   }
 
   init() {
-    // Detect iOS
+    // Detect iOS (including iPadOS)
     this.isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
                  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
     this.isPWA = window.matchMedia('(display-mode: standalone)').matches ||
                  window.navigator.standalone === true;
     
+    // Get elements
+    this.main = document.querySelector('.main');
     this.chatContainer = document.getElementById('chat-container');
     this.inputArea = document.getElementById('input-area');
     this.input = document.getElementById('message-input');
     this.contextInput = document.getElementById('context-input');
-    this.initialHeight = window.visualViewport?.height || window.innerHeight;
     
-    // Set CSS variable for app height
-    this.updateAppHeight();
+    // Store base height (full screen without keyboard)
+    this.baseHeight = window.visualViewport?.height || window.innerHeight;
     
-    if (window.visualViewport) {
-      // The key: listen to visualViewport changes
-      window.visualViewport.addEventListener('resize', this.handleViewportChange.bind(this));
-      window.visualViewport.addEventListener('scroll', this.handleViewportScroll.bind(this));
+    // Measure input bar once loaded
+    if (this.inputArea) {
+      this.inputBarHeight = this.inputArea.offsetHeight;
     }
     
-    // Orientation change
+    // Set initial CSS variables
+    this.updateCSSVariables();
+    
+    // Apply iOS-specific classes
+    if (this.isIOS) {
+      document.body.classList.add('is-ios');
+      if (this.isPWA) {
+        document.body.classList.add('is-pwa');
+      }
+    }
+    
+    // Setup visualViewport listeners (the key to iOS keyboard handling)
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', this.onViewportResize.bind(this));
+      window.visualViewport.addEventListener('scroll', this.onViewportScroll.bind(this));
+    }
+    
+    // Orientation change - reset base height
     window.addEventListener('orientationchange', () => {
       setTimeout(() => {
-        this.initialHeight = window.visualViewport?.height || window.innerHeight;
-        this.updateAppHeight();
-        this.resetInputPosition();
-      }, 300);
+        this.baseHeight = window.visualViewport?.height || window.innerHeight;
+        this.updateCSSVariables();
+        this.closeKeyboard();
+      }, 350);
     });
     
-    // Focus/blur on inputs
-    this.setupInputListeners();
-    
-    // Prevent rubber-banding on iOS PWA
-    if (this.isIOS) {
-      this.preventRubberBanding();
-    }
-    
-    // Also listen for resize as backup
+    // Regular resize (not keyboard) 
     window.addEventListener('resize', () => {
       if (!this.isKeyboardOpen) {
-        this.updateAppHeight();
+        this.baseHeight = window.visualViewport?.height || window.innerHeight;
+        this.updateCSSVariables();
       }
     });
+    
+    // Input focus/blur
+    this.setupInputListeners();
+    
+    // Prevent iOS rubber-banding and dragging
+    if (this.isIOS) {
+      this.setupTouchHandling();
+    }
+  }
+
+  updateCSSVariables() {
+    const vh = this.baseHeight;
+    document.documentElement.style.setProperty('--app-height', `${vh}px`);
+    document.documentElement.style.setProperty('--keyboard-height', '0px');
   }
 
   setupInputListeners() {
     const inputs = [this.input, this.contextInput].filter(Boolean);
     
     inputs.forEach(input => {
-      input.addEventListener('focus', () => this.onInputFocus(), { passive: true });
-      input.addEventListener('blur', () => this.onInputBlur(), { passive: true });
+      // Focus - keyboard opening
+      input.addEventListener('focus', () => {
+        // Wait for iOS keyboard animation
+        this.scheduleKeyboardCheck(100);
+        this.scheduleKeyboardCheck(200);
+        this.scheduleKeyboardCheck(350);
+        this.scheduleKeyboardCheck(500);
+      }, { passive: true });
       
-      // Prevent zoom on iOS (font-size < 16px triggers zoom)
+      // Blur - keyboard closing
+      input.addEventListener('blur', () => {
+        // Delay to check if focus moved to another input
+        setTimeout(() => {
+          const active = document.activeElement;
+          const stillFocused = active?.tagName === 'INPUT' || 
+                               active?.tagName === 'TEXTAREA' ||
+                               active?.isContentEditable;
+          if (!stillFocused) {
+            this.closeKeyboard();
+          }
+        }, 150);
+      }, { passive: true });
+      
+      // Ensure 16px font to prevent iOS zoom
       input.style.fontSize = '16px';
     });
   }
 
-  preventRubberBanding() {
-    // Lock body completely
-    const lockBody = () => {
-      document.body.style.position = 'fixed';
-      document.body.style.width = '100%';
-      document.body.style.height = '100%';
-      document.body.style.overflow = 'hidden';
-      document.body.style.overscrollBehavior = 'none';
-    };
+  scheduleKeyboardCheck(delay) {
+    setTimeout(() => {
+      if (document.activeElement?.tagName === 'INPUT' || 
+          document.activeElement?.tagName === 'TEXTAREA') {
+        this.onViewportResize();
+      }
+    }, delay);
+  }
+
+  setupTouchHandling() {
+    // Completely lock the body
+    document.body.style.cssText += `
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      right: 0 !important;
+      bottom: 0 !important;
+      width: 100% !important;
+      height: 100% !important;
+      overflow: hidden !important;
+      overscroll-behavior: none !important;
+      touch-action: none !important;
+    `;
     
-    lockBody();
+    // Whitelist scrollable areas
+    const scrollableSelectors = [
+      '#chat-container',
+      '.conversation-list', 
+      '.panel-content',
+      '.context-panel-input',
+      '#context-input',
+      '#message-input',
+      'textarea'
+    ].join(', ');
     
-    // Prevent touchmove on body/non-scrollable areas
+    // Prevent touchmove on non-scrollable areas
     document.addEventListener('touchmove', (e) => {
       const target = e.target;
-      const scrollableParent = target.closest(
-        '#chat-container, .conversation-list, .panel-content, ' +
-        '.context-panel-input, #context-input, #message-input, textarea'
-      );
+      const scrollable = target.closest(scrollableSelectors);
       
-      if (!scrollableParent) {
+      if (!scrollable) {
         e.preventDefault();
+        return;
+      }
+      
+      // Check if element can actually scroll
+      if (scrollable.scrollHeight <= scrollable.clientHeight) {
+        // Not actually scrollable
+        if (!scrollable.matches('textarea, input')) {
+          e.preventDefault();
+        }
       }
     }, { passive: false });
     
-    // Prevent touchstart from causing issues on input area
+    // Lock the input area from being dragged
     if (this.inputArea) {
-      this.inputArea.addEventListener('touchstart', (e) => {
-        // Don't prevent - allow tapping buttons
-      }, { passive: true });
-      
-      // But prevent the input area itself from being dragged
+      // Prevent all touch movement on the input container itself
       this.inputArea.addEventListener('touchmove', (e) => {
-        // Allow if scrolling textarea
-        if (e.target.closest('textarea, input')) {
-          return;
+        // Only allow if directly touching a textarea/input that needs scrolling
+        const target = e.target;
+        if (target.tagName === 'TEXTAREA' && target.scrollHeight > target.clientHeight) {
+          return; // Allow textarea to scroll
         }
         e.preventDefault();
       }, { passive: false });
+      
+      // Prevent drag gesture
+      this.inputArea.style.cssText += `
+        touch-action: manipulation !important;
+        -webkit-user-drag: none !important;
+        user-drag: none !important;
+      `;
+    }
+    
+    // The input wrapper should be manipulation only (allow tap, prevent pan/zoom)
+    const inputWrapper = document.querySelector('.input-wrapper');
+    if (inputWrapper) {
+      inputWrapper.style.touchAction = 'manipulation';
     }
   }
 
-  updateAppHeight() {
-    const height = window.visualViewport?.height || window.innerHeight;
-    document.documentElement.style.setProperty('--app-height', `${height}px`);
-  }
-
-  handleViewportChange() {
+  onViewportResize() {
     const vv = window.visualViewport;
     if (!vv) return;
     
-    // Calculate how much viewport shrunk (keyboard height)
-    const keyboardOffset = this.initialHeight - vv.height;
+    // Cancel any pending RAF
+    if (this.rafId) {
+      cancelAnimationFrame(this.rafId);
+    }
     
-    // Also account for viewport scroll (iOS scrolls viewport when keyboard shows)
-    const totalOffset = keyboardOffset + vv.offsetTop;
-    
-    if (totalOffset > 50) {
-      // Keyboard is open
-      if (!this.isKeyboardOpen) {
-        this.isKeyboardOpen = true;
-        document.body.classList.add('keyboard-open');
+    this.rafId = requestAnimationFrame(() => {
+      // Calculate keyboard height
+      // Note: On iOS, when keyboard shows, visualViewport.height shrinks
+      // and visualViewport.offsetTop may change (viewport scrolls up)
+      const viewportHeight = vv.height;
+      const offsetTop = vv.offsetTop;
+      
+      // Keyboard height = difference from base, accounting for viewport scroll
+      const keyboardHeight = Math.max(0, this.baseHeight - viewportHeight - offsetTop);
+      
+      // Threshold to determine if keyboard is "open"
+      const threshold = 100; // Keyboard is usually 200px+ on phones
+      
+      if (keyboardHeight > threshold) {
+        // Keyboard is open
+        if (!this.isKeyboardOpen) {
+          this.isKeyboardOpen = true;
+          document.body.classList.add('keyboard-open');
+        }
+        this.lastKeyboardHeight = keyboardHeight;
+        this.positionInputForKeyboard(keyboardHeight);
+      } else if (this.isKeyboardOpen && keyboardHeight < 50) {
+        // Keyboard closed
+        this.closeKeyboard();
       }
-      
-      this.lastKeyboardHeight = totalOffset;
-      this.adjustForKeyboard(totalOffset);
-      
-    } else if (this.isKeyboardOpen && totalOffset < 30) {
-      // Keyboard closed
-      this.isKeyboardOpen = false;
-      document.body.classList.remove('keyboard-open');
-      this.resetInputPosition();
-    }
+    });
   }
 
-  handleViewportScroll() {
-    // iOS may scroll the visual viewport - keep input pinned
+  onViewportScroll() {
+    // iOS scrolls the visual viewport when keyboard appears
+    // Re-run position calculation
     if (this.isKeyboardOpen) {
-      this.handleViewportChange();
+      this.onViewportResize();
     }
   }
 
-  adjustForKeyboard(keyboardHeight) {
+  positionInputForKeyboard(keyboardHeight) {
     if (!this.inputArea) return;
     
-    // Method: Use bottom positioning via CSS variable
-    // This is more stable than transform on iOS
-    this.inputArea.style.setProperty('--keyboard-offset', `${keyboardHeight}px`);
-    this.inputArea.style.bottom = `${keyboardHeight}px`;
+    // Set CSS variable for keyboard height
+    document.documentElement.style.setProperty('--keyboard-height', `${keyboardHeight}px`);
     
-    // Adjust chat container so content isn't hidden
+    // Position input bar above keyboard
+    // Use bottom positioning - most reliable on iOS
+    this.inputArea.style.position = 'fixed';
+    this.inputArea.style.bottom = `${keyboardHeight}px`;
+    this.inputArea.style.left = '0';
+    this.inputArea.style.right = '0';
+    
+    // Adjust chat container padding so last message is visible
     if (this.chatContainer) {
-      // Extra padding = input bar height (~80px) + some buffer
-      const inputBarHeight = this.inputArea.offsetHeight || 80;
-      this.chatContainer.style.paddingBottom = `${keyboardHeight + inputBarHeight + 16}px`;
+      const inputHeight = this.inputArea.offsetHeight || this.inputBarHeight || 80;
+      this.chatContainer.style.paddingBottom = `${keyboardHeight + inputHeight + 20}px`;
     }
     
-    // Scroll to show latest content
+    // Scroll chat to bottom
     this.scrollToBottom();
+    
+    // Reset any body scroll that iOS might have introduced
+    window.scrollTo(0, 0);
   }
 
-  resetInputPosition() {
+  closeKeyboard() {
+    this.isKeyboardOpen = false;
+    this.lastKeyboardHeight = 0;
+    document.body.classList.remove('keyboard-open');
+    document.documentElement.style.setProperty('--keyboard-height', '0px');
+    
     if (this.inputArea) {
-      this.inputArea.style.removeProperty('--keyboard-offset');
+      // Reset to CSS-controlled positioning (flex child)
+      this.inputArea.style.position = '';
       this.inputArea.style.bottom = '';
+      this.inputArea.style.left = '';
+      this.inputArea.style.right = '';
     }
     
     if (this.chatContainer) {
       this.chatContainer.style.paddingBottom = '';
     }
     
-    this.lastKeyboardHeight = 0;
-    
-    // Reset any page scroll that iOS might have done
-    if (this.isIOS) {
-      window.scrollTo(0, 0);
-    }
-  }
-
-  onInputFocus() {
-    // Wait for keyboard to appear
-    const checkKeyboard = () => {
-      if (window.visualViewport) {
-        this.handleViewportChange();
-      }
-      this.scrollToBottom();
-    };
-    
-    // Multiple checks as keyboard animates
-    setTimeout(checkKeyboard, 100);
-    setTimeout(checkKeyboard, 250);
-    setTimeout(checkKeyboard, 400);
-  }
-
-  onInputBlur() {
-    // Delay to see if focus moved to another input
-    setTimeout(() => {
-      const activeEl = document.activeElement;
-      const isStillInput = activeEl && (
-        activeEl.tagName === 'INPUT' ||
-        activeEl.tagName === 'TEXTAREA' ||
-        activeEl.isContentEditable
-      );
-      
-      if (!isStillInput) {
-        this.isKeyboardOpen = false;
-        document.body.classList.remove('keyboard-open');
-        this.resetInputPosition();
-      }
-    }, 200);
+    // Reset page scroll
+    window.scrollTo(0, 0);
   }
 
   scrollToBottom() {
     if (!this.chatContainer) return;
     
-    // Use requestAnimationFrame for smooth scroll
     requestAnimationFrame(() => {
       this.chatContainer.scrollTo({
         top: this.chatContainer.scrollHeight,
-        behavior: 'smooth'
+        behavior: 'auto' // Use 'auto' for immediate scroll, 'smooth' can lag on iOS
       });
     });
+  }
+  
+  // Public method to manually trigger scroll (for new messages)
+  ensureScrolledToBottom() {
+    this.scrollToBottom();
   }
 }
 

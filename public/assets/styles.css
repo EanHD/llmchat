@@ -6,9 +6,10 @@
 
 /* CSS Variables */
 :root {
-  /* Dynamic viewport height - set by JS */
+  /* Dynamic viewport height - set by JS, with modern fallbacks */
   --app-height: 100vh;
-  --app-height: 100dvh; /* Modern browsers */
+  --app-height: 100dvh; /* Dynamic viewport height - handles iOS keyboard */
+  --keyboard-height: 0px;
   
   /* Colors */
   --bg-primary: #000000;
@@ -1481,8 +1482,8 @@ button.primary:active { transform: translateY(0); }
   html, body {
     height: 100%;
     min-height: 100%;
+    min-height: 100dvh;
     min-height: -webkit-fill-available;
-    /* Prevent overscroll */
     overscroll-behavior: none;
   }
   
@@ -1490,7 +1491,6 @@ button.primary:active { transform: translateY(0); }
     height: 100%;
   }
   
-  /* Adjust header for notch */
   .chat-header {
     padding-top: var(--safe-top);
   }
@@ -1498,77 +1498,77 @@ button.primary:active { transform: translateY(0); }
   .sidebar {
     height: 100%;
   }
-  
-  /* Input bar in PWA mode - absolute positioning for keyboard handling */
-  .input-container {
-    /* Will be positioned by JS when keyboard opens */
-  }
 }
 
-/* iOS Safari specific - prevent scroll bounce */
+/* iOS-specific fixes - applied via JS class */
+body.is-ios {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  overflow: hidden !important;
+  overscroll-behavior: none !important;
+}
+
+body.is-ios #app {
+  height: 100%;
+  overflow: hidden;
+}
+
+body.is-ios .main {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+body.is-ios .chat-container {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+  touch-action: pan-y;
+  /* Padding for input bar - will be adjusted by JS when keyboard opens */
+  padding-bottom: 100px;
+}
+
+body.is-ios .input-container {
+  flex: 0 0 auto;
+  touch-action: manipulation !important;
+  -webkit-user-drag: none !important;
+  /* When keyboard opens, JS sets position: fixed */
+}
+
+body.is-ios .input-wrapper {
+  touch-action: manipulation !important;
+}
+
+body.is-ios #message-input {
+  touch-action: pan-y;
+}
+
+/* When keyboard is open - iOS specific */
+body.is-ios.keyboard-open .input-container {
+  /* JS controls positioning via inline styles */
+  /* Remove safe area padding as keyboard covers it */
+  padding-bottom: 12px !important;
+  /* Ensure it stays on top */
+  z-index: 100;
+}
+
+body.is-ios.keyboard-open .chat-container {
+  /* JS sets the padding to account for keyboard + input bar */
+}
+
+/* iOS Safari specific - prevent scroll bounce (non-JS fallback) */
 @supports (-webkit-touch-callout: none) {
   html {
     height: -webkit-fill-available;
     overflow: hidden;
-  }
-  
-  body {
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    width: 100%;
-    height: 100%;
-    min-height: -webkit-fill-available;
-    overflow: hidden;
-    overscroll-behavior: none;
-    /* Critical: prevent any body movement */
-    touch-action: none;
-  }
-  
-  #app {
-    height: 100%;
-    min-height: -webkit-fill-available;
-    overflow: hidden;
-  }
-  
-  .main {
-    /* Flex layout handles height */
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-    overflow: hidden;
-  }
-  
-  .chat-container {
-    /* Only this scrolls */
-    flex: 1 1 auto;
-    overflow-y: auto;
-    overflow-x: hidden;
-    -webkit-overflow-scrolling: touch;
-    overscroll-behavior-y: contain;
-    /* Prevent momentum carrying to parent */
-    touch-action: pan-y;
-  }
-  
-  /* Input container must not move on touch */
-  .input-container {
-    flex: 0 0 auto;
-    touch-action: manipulation;
-    /* Prevent any dragging */
-    -webkit-user-drag: none;
-    user-drag: none;
-  }
-  
-  /* Input wrapper should not be draggable */
-  .input-wrapper {
-    touch-action: manipulation;
-  }
-  
-  /* Textarea inside can pan for scrolling text */
-  #message-input {
-    touch-action: pan-y;
   }
 }
 
