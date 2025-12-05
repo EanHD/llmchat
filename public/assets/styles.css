@@ -483,6 +483,22 @@ button, a, .conversation-item, .prompt-chip {
   resize: none;
   line-height: 1.4;
   align-self: center;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255,255,255,0.2) transparent;
+}
+#message-input::-webkit-scrollbar {
+  width: 4px;
+}
+#message-input::-webkit-scrollbar-track {
+  background: transparent;
+}
+#message-input::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.2);
+  border-radius: 4px;
+}
+#message-input::-webkit-scrollbar-thumb:hover {
+  background: rgba(255,255,255,0.3);
 }
 #message-input::placeholder { color: rgba(148, 163, 184, 0.7); }
 #message-input:focus { outline: none; }
