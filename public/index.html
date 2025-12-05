@@ -113,11 +113,18 @@
         <!-- Hidden file input for attachments -->
         <input type="file" id="file-input" multiple accept="image/*,.pdf,.txt,.md,.json,.js,.ts,.jsx,.tsx,.py,.html,.css,.csv" hidden>
         
-        <!-- Attachment previews area -->
-        <div id="attachment-previews" class="attachment-previews hidden"></div>
+        <!-- Context/Attachments area (expandable) -->
+        <div id="context-area" class="context-area hidden">
+          <div class="context-header">
+            <span class="context-label">Context</span>
+            <button id="close-context-btn" class="context-close" aria-label="Close context">&times;</button>
+          </div>
+          <textarea id="context-input" class="context-input" placeholder="Paste code, text, or any context here..." rows="4"></textarea>
+          <div id="attachment-previews" class="attachment-previews"></div>
+        </div>
         
         <div class="input-wrapper">
-          <button id="attach-btn" class="input-icon-btn" aria-label="Attach">
+          <button id="attach-btn" class="input-icon-btn" aria-label="Add context" title="Add context or files">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg>
           </button>
           

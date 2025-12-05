@@ -497,7 +497,107 @@ button, a, .conversation-item, .prompt-chip {
 .send-btn:hover { background: var(--accent-hover) !important; }
 .send-btn.hidden { display: none !important; }
 
+/* Context Area - Expandable section above input */
+.context-area {
+  width: 100%;
+  max-width: 768px;
+  background: rgba(25, 25, 30, 0.98);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 16px;
+  margin-bottom: 8px;
+  overflow: hidden;
+  animation: contextSlideIn 0.2s ease-out;
+}
+
+.context-area.hidden {
+  display: none;
+}
+
+@keyframes contextSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.context-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 14px;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+
+.context-label {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.context-close {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: transparent;
+  border: none;
+  color: var(--text-tertiary);
+  font-size: 18px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+}
+
+.context-close:hover {
+  background: rgba(255,255,255,0.1);
+  color: #fff;
+}
+
+.context-input {
+  width: 100%;
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  font-size: 14px;
+  font-family: 'SF Mono', 'Monaco', 'Inconsolata', monospace;
+  line-height: 1.5;
+  padding: 12px 14px;
+  resize: none;
+  min-height: 80px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.context-input::placeholder {
+  color: var(--text-tertiary);
+}
+
+.context-input:focus {
+  outline: none;
+}
+
+/* Context area attachment previews */
+.context-area .attachment-previews {
+  padding: 8px 14px 12px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+}
+
+.context-area .attachment-previews:empty {
+  display: none;
+}
+
 /* Attachment Button States */
+.input-icon-btn.has-context {
+  color: var(--accent-primary) !important;
+}
+
 .input-icon-btn.has-attachments {
   color: var(--accent-primary) !important;
   position: relative;
@@ -523,14 +623,13 @@ button, a, .conversation-item, .prompt-chip {
 .attachment-previews {
   display: flex;
   gap: 8px;
-  padding: 8px 16px;
+  padding: 0;
   overflow-x: auto;
-  max-width: 768px;
+  max-width: 100%;
   width: 100%;
   scrollbar-width: none;
 }
 .attachment-previews::-webkit-scrollbar { display: none; }
-.attachment-previews.hidden { display: none; }
 
 .attachment-preview {
   position: relative;

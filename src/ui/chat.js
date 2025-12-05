@@ -27,6 +27,9 @@ export class ChatUI {
     this.chatTitle = $('#chat-title');
     this.fileInput = $('#file-input');
     this.attachmentPreviews = $('#attachment-previews');
+    this.contextArea = $('#context-area');
+    this.contextInput = $('#context-input');
+    this.closeContextBtn = $('#close-context-btn');
     
     this.apiClient = null;
     this.isSubmitting = false;
@@ -118,16 +121,33 @@ export class ChatUI {
       });
     }
 
-    // Attach button - opens file picker
-    if (this.attachBtn && this.fileInput) {
+    // Attach button - toggles context area
+    if (this.attachBtn) {
       this.attachBtn.addEventListener('click', () => {
-        this.fileInput.click();
+        this.toggleContextArea();
       });
-      
+    }
+    
+    // File input change handler
+    if (this.fileInput) {
       this.fileInput.addEventListener('change', (e) => {
         this.handleFileSelect(e.target.files);
-        // Reset input so same file can be selected again
         this.fileInput.value = '';
+      });
+    }
+    
+    // Close context button
+    if (this.closeContextBtn) {
+      this.closeContextBtn.addEventListener('click', () => {
+        this.closeContextArea();
+      });
+    }
+    
+    // Context input change handler
+    if (this.contextInput) {
+      this.contextInput.addEventListener('input', () => {
+        this.updateAttachButton();
+        this.toggleInputButtons();
       });
     }
     
@@ -141,6 +161,63 @@ export class ChatUI {
 
     // Pull to refresh (New Chat)
     this.setupPullToRefresh();
+  }
+
+  /**
+   * Toggle context area visibility
+   */
+  toggleContextArea() {
+    if (!this.contextArea) return;
+    
+    const isHidden = this.contextArea.classList.contains('hidden');
+    if (isHidden) {
+      this.contextArea.classList.remove('hidden');
+      // Focus the context input
+      if (this.contextInput) {
+        this.contextInput.focus();
+      }
+    } else {
+      // If already open, open file picker instead
+      if (this.fileInput) {
+        this.fileInput.click();
+      }
+    }
+  }
+
+  /**
+   * Close context area
+   */
+  closeContextArea() {
+    if (!this.contextArea) return;
+    this.contextArea.classList.add('hidden');
+  }
+
+  /**
+   * Check if context area has content
+   */
+  hasContext() {
+    const contextText = this.contextInput?.value?.trim() || '';
+    return contextText.length > 0 || attachments.hasAttachments();
+  }
+
+  /**
+   * Get context text
+   */
+  getContextText() {
+    return this.contextInput?.value?.trim() || '';
+  }
+
+  /**
+   * Clear context
+   */
+  clearContext() {
+    if (this.contextInput) {
+      this.contextInput.value = '';
+    }
+    attachments.clearAttachments();
+    this.renderAttachmentPreviews();
+    this.updateAttachButton();
+    this.closeContextArea();
   }
 
   /**
@@ -261,6 +338,14 @@ export class ChatUI {
       this.attachBtn.classList.remove('has-attachments');
       this.attachBtn.removeAttribute('data-count');
     }
+    
+    // Also highlight if there's context text
+    const hasContextText = this.getContextText().length > 0;
+    if (hasContextText || count > 0) {
+      this.attachBtn.classList.add('has-context');
+    } else {
+      this.attachBtn.classList.remove('has-context');
+    }
   }
 
   /**
@@ -339,6 +424,7 @@ export class ChatUI {
   toggleInputButtons() {
     const hasText = this.messageInput.value.trim().length > 0;
     const hasAttachments = attachments.hasAttachments();
+    const hasContextText = this.getContextText().length > 0;
     
     // If listening, always show mic (as stop button) and hide send
     if (this.isListening) {
@@ -347,8 +433,8 @@ export class ChatUI {
       return;
     }
 
-    // Show send button if there's text OR attachments
-    if (hasText || hasAttachments) {
+    // Show send button if there's text, attachments, OR context
+    if (hasText || hasAttachments || hasContextText) {
       if (this.micBtn) this.micBtn.style.display = 'none';
       this.sendBtn.classList.remove('hidden');
     } else {
@@ -506,9 +592,10 @@ export class ChatUI {
   async handleSendMessage() {
     let content = this.messageInput.value.trim();
     const hasAttachments = attachments.hasAttachments();
+    const contextText = this.getContextText();
     
-    // Allow sending with just attachments (no text required)
-    if (!content && !hasAttachments) {
+    // Allow sending with just attachments or context (no main text required)
+    if (!content && !hasAttachments && !contextText) {
       return;
     }
     
@@ -537,13 +624,20 @@ export class ChatUI {
       preview: a.category === FileCategories.IMAGE ? a.preview : null
     }));
 
+    // Build the full message content with context
+    let fullContent = content;
+    if (contextText) {
+      // Prepend context as a clearly marked section
+      fullContent = contextText + (content ? '\n\n---\n\n' + content : '');
+    }
+
     try {
       // Get or create conversation
       let conversationId = state.getState('currentConversationId');
       
       if (!conversationId) {
         const conversation = new Conversation({
-          title: generateTitle(content || 'Image', 30),
+          title: generateTitle(content || contextText || 'Image', 30),
           model: null // Will be set when we get response
         });
         
@@ -561,8 +655,8 @@ export class ChatUI {
         state.setConversations(conversations);
       }
 
-      // Create user message with attachments
-      const userMessage = Message.createUserMessage(conversationId, content, currentAttachments);
+      // Create user message with attachments (store fullContent which includes context)
+      const userMessage = Message.createUserMessage(conversationId, fullContent, currentAttachments);
       
       try {
         await storage.saveMessage(userMessage.toJSON());
@@ -572,12 +666,10 @@ export class ChatUI {
       
       state.addMessage(userMessage.toJSON());
 
-      // Clear input and attachments
+      // Clear input, context, and attachments
       this.messageInput.value = '';
       this.adjustTextareaHeight();
-      attachments.clearAttachments();
-      this.renderAttachmentPreviews();
-      this.updateAttachButton();
+      this.clearContext();
       this.toggleInputButtons();
 
       // Create assistant message (pending)
