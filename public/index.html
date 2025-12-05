@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" style="background:#000;">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover, interactive-widget=resizes-content">
@@ -46,7 +46,9 @@
 
   <title>Kai</title>
 </head>
-<body>
+<body style="background:#000;">
+  <!-- iOS PWA safe area fill - ensures no black void at bottom -->
+  <div id="ios-safe-fill" style="position:fixed;bottom:0;left:0;right:0;height:env(safe-area-inset-bottom,0);background:#000;z-index:0;pointer-events:none;"></div>
   <div id="app">
     <!-- Sidebar -->
     <aside id="sidebar" class="sidebar">
