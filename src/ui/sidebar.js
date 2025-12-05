@@ -15,6 +15,7 @@ export class SidebarUI {
     this.newChatBtn = $('#new-chat-btn');
     this.sidebar = $('#sidebar');
     this.sidebarToggle = $('#sidebar-toggle');
+    this.sidebarToggleDesktop = $('#sidebar-toggle-desktop');
     this.closeSidebarBtn = $('#close-sidebar-btn');
 
     this.init();
@@ -58,12 +59,33 @@ export class SidebarUI {
       });
     }
     
-    // Close sidebar button (mobile)
-    if (this.closeSidebarBtn) {
-      this.closeSidebarBtn.addEventListener('click', () => {
-        this.sidebar.classList.remove('open');
+    // Desktop sidebar toggle (re-open)
+    if (this.sidebarToggleDesktop) {
+      this.sidebarToggleDesktop.addEventListener('click', () => {
+        this.toggleDesktopSidebar();
       });
     }
+    
+    // Close sidebar button (works on mobile AND desktop)
+    if (this.closeSidebarBtn) {
+      this.closeSidebarBtn.addEventListener('click', () => {
+        // On mobile, just close the overlay
+        if (window.innerWidth <= 768) {
+          this.sidebar.classList.remove('open');
+        } else {
+          // On desktop, collapse the sidebar
+          this.toggleDesktopSidebar();
+        }
+      });
+    }
+  }
+
+  /**
+   * Toggle desktop sidebar collapsed state
+   */
+  toggleDesktopSidebar() {
+    this.sidebar.classList.toggle('collapsed');
+    document.body.classList.toggle('sidebar-collapsed');
   }
 
   /**

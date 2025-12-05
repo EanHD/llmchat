@@ -148,6 +148,12 @@ button, a, .conversation-item, .prompt-chip {
   font-weight: 800; 
   color: #fff;
   letter-spacing: -0.02em;
+  flex: 1;
+}
+
+/* Close sidebar button - visible on all screen sizes */
+.close-sidebar-btn {
+  margin-left: auto;
 }
 
 .conversation-list { 
@@ -923,6 +929,28 @@ button, a, .conversation-item, .prompt-chip {
 
 @media (min-width: 769px) {
   .mobile-only { display: none; }
+  
+  /* Desktop sidebar collapse */
+  .sidebar.collapsed {
+    width: 0;
+    min-width: 0;
+    padding: 0;
+    overflow: hidden;
+    border-right: none;
+  }
+  
+  .sidebar.collapsed * {
+    visibility: hidden;
+  }
+  
+  /* Show toggle button in header when sidebar is collapsed */
+  .sidebar-toggle-desktop {
+    display: none;
+  }
+  
+  body.sidebar-collapsed .sidebar-toggle-desktop {
+    display: flex;
+  }
 }
 
 /* Animations */
