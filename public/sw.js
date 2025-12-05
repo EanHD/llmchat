@@ -1,26 +1,47 @@
 /**
  * Kai PWA Service Worker
- * Version 1.3.0
+ * Version 2.0.0
  */
 
-const CACHE_VERSION = '1.3.0';
+const CACHE_VERSION = '2.0.0';
 const CACHE_NAME = `kai-v${CACHE_VERSION}`;
 
-// Use relative paths that work in subdirectories
+// Core files to cache for offline
 const STATIC_ASSETS = [
   './',
   './index.html',
   './manifest.json',
+  './favicon.svg',
   './assets/styles.css',
   './app.js',
-  './favicon.svg',
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/apple-touch-icon.png',
-  './src/opencode/styles.css',
-  './src/opencode/ui.js',
-  './src/opencode/storage.js',
-  './src/opencode/api.js'
+  // Core modules
+  './src/core/api.js',
+  './src/core/state.js',
+  './src/core/storage.js',
+  './src/core/shortcuts.js',
+  './src/core/attachments.js',
+  './src/core/ios-viewport.js',
+  // UI modules
+  './src/ui/chat.js',
+  './src/ui/sidebar.js',
+  './src/ui/settings.js',
+  './src/ui/memory.js',
+  './src/ui/toast.js',
+  './src/ui/components.js',
+  './src/ui/markdown.js',
+  // Models
+  './src/models/message.js',
+  './src/models/conversation.js',
+  './src/models/settings.js',
+  // Agent
+  './src/agent/agent-mode.js',
+  './src/agent/agent-mode.css',
+  // Utils
+  './src/utils/dom.js',
+  './src/utils/format.js'
 ];
 
 // Install event - cache static assets

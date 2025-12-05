@@ -1,6 +1,6 @@
 /**
  * Kai - Private AI Chat PWA
- * Version 1.3.0
+ * Version 2.0.0
  */
 
 import { storage } from './src/core/storage.js';
@@ -14,6 +14,8 @@ import { DEFAULT_SETTINGS } from './src/models/settings.js';
 import { shortcuts } from './src/core/shortcuts.js';
 import { agentMode } from './src/agent/agent-mode.js';
 import { iosViewport } from './src/core/ios-viewport.js';
+
+const APP_VERSION = '2.0.0';
 
 class App {
   constructor() {

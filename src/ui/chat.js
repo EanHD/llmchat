@@ -764,14 +764,23 @@ export class ChatUI {
     } catch (error) {
       console.error('Failed to send message:', error);
       
-      const userMessage = error.message || 'An unexpected error occurred';
-      state.setError(userMessage);
+      // Show user-friendly toast
+      let friendlyMessage = 'Something went wrong. Please try again.';
+      if (error.message.includes('Network error') || error.message.includes('fetch')) {
+        friendlyMessage = 'Unable to connect. Check your internet connection.';
+      } else if (error.message.includes('timed out')) {
+        friendlyMessage = 'Request timed out. The server may be busy.';
+      } else if (error.message.includes('API')) {
+        friendlyMessage = 'AI service unavailable. Try again shortly.';
+      }
+      
+      this.showToast(friendlyMessage);
       
       const messages = state.getState('messages');
       const lastMessage = messages[messages.length - 1];
       if (lastMessage && lastMessage.role === MessageRole.ASSISTANT) {
         lastMessage.status = MessageStatus.ERROR;
-        lastMessage.content = 'Failed to get response from AI. Please try again.';
+        lastMessage.content = friendlyMessage;
         await storage.saveMessage(lastMessage);
         state.updateMessage(lastMessage.id, lastMessage);
       }

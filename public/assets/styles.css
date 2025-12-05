@@ -378,6 +378,21 @@ button, a, .conversation-item, .prompt-chip {
   padding: 0;
 }
 
+/* Error state for messages */
+.message.error .message-content {
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+.message.assistant.error::after {
+  content: 'Tap to retry';
+  display: block;
+  font-size: 12px;
+  color: var(--accent-primary);
+  margin-top: 8px;
+  opacity: 0.8;
+}
+
 /* Assistant Message Actions */
 .assistant-actions {
   display: flex;
