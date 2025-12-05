@@ -15,6 +15,7 @@ import { generateTitle } from '../utils/format.js';
 import { shortcuts } from '../core/shortcuts.js';
 import { agentMode } from '../agent/agent-mode.js';
 import { attachments, FileCategories } from '../core/attachments.js';
+import { tts } from '../core/tts.js';
 
 export class ChatUI {
   constructor() {
@@ -1219,9 +1220,37 @@ export class ChatUI {
       <button class="btn-icon btn-copy" title="Copy" aria-label="Copy">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
       </button>
+      <button class="btn-icon btn-speak" title="Listen" aria-label="Listen to response">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
+      </button>
       <button class="btn-icon btn-regen" title="Regenerate" aria-label="Regenerate">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 4v6h6"/><path d="M23 20v-6h-6"/><path d="M3.51 15a9 9 0 0 0 14.85 3.36L23 14"/><path d="M1 10l4.64-4.36A9 9 0 0 1 20.49 9"/></svg>
       </button>`;
+    
+    // Add speak handler
+    const speakBtn = actions.querySelector('.btn-speak');
+    speakBtn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const messageEl = contentEl.closest('.message');
+      const messageId = messageEl?.dataset?.messageId;
+      
+      // Get plain text from content (strip HTML)
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = contentEl.innerHTML;
+      // Remove action buttons from text
+      const actionsEl = tempDiv.querySelector('.assistant-actions');
+      if (actionsEl) actionsEl.remove();
+      const text = tempDiv.textContent || tempDiv.innerText;
+      
+      if (text.trim()) {
+        try {
+          await tts.speak(text.trim(), messageId);
+        } catch (error) {
+          this.showToast('Failed to play audio');
+        }
+      }
+    });
+    
     contentEl.appendChild(actions);
   }
 
@@ -1320,13 +1349,51 @@ export class ChatUI {
 
     const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
     this.recognition = new SpeechRecognition();
-    this.recognition.continuous = false;
+    this.recognition.continuous = true; // Keep listening for long speech
     this.recognition.interimResults = true;
     this.recognition.lang = 'en-US';
-    this.recognition.maxAlternatives = 1;
+    this.recognition.maxAlternatives = 3; // Get alternatives for better accuracy
 
     this.isManualStop = false;
     this.lastInterimResult = '';
+    this.silenceTimeout = null;
+    
+    // Add phrase hints if supported (Chrome 90+)
+    // These boost recognition of specific words
+    if ('SpeechRecognitionPhrase' in window && this.recognition.phrases !== undefined) {
+      try {
+        const phraseHints = [
+          // App name
+          { phrase: 'Kai', boost: 5.0 },
+          { phrase: 'chi', boost: -2.0 }, // Downboost misheard version
+          // Tech companies/terms commonly misheard
+          { phrase: 'Vercel', boost: 4.0 },
+          { phrase: 'Next.js', boost: 4.0 },
+          { phrase: 'React', boost: 3.0 },
+          { phrase: 'JavaScript', boost: 3.0 },
+          { phrase: 'TypeScript', boost: 3.0 },
+          { phrase: 'GitHub', boost: 3.0 },
+          { phrase: 'API', boost: 3.0 },
+          { phrase: 'Claude', boost: 4.0 },
+          { phrase: 'GPT', boost: 3.0 },
+          { phrase: 'OpenAI', boost: 3.0 },
+          { phrase: 'Anthropic', boost: 3.0 },
+          // Filler words to capture
+          { phrase: 'um', boost: 2.0 },
+          { phrase: 'uh', boost: 2.0 },
+          { phrase: 'like', boost: 1.5 },
+          { phrase: 'you know', boost: 2.0 },
+        ];
+        
+        const phraseObjects = phraseHints.map(p => 
+          new SpeechRecognitionPhrase(p.phrase, p.boost)
+        );
+        this.recognition.phrases = phraseObjects;
+      } catch (e) {
+        // Phrase hints not supported, continue without
+        console.log('Speech phrase hints not supported');
+      }
+    }
 
     this.recognition.onstart = () => {
       this.isListening = true;
@@ -1336,6 +1403,12 @@ export class ChatUI {
     };
 
     this.recognition.onend = () => {
+      // Clear silence timeout
+      if (this.silenceTimeout) {
+        clearTimeout(this.silenceTimeout);
+        this.silenceTimeout = null;
+      }
+      
       this.isListening = false;
       this.micBtn.classList.remove('listening');
       this.micBtn.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>';
@@ -1348,14 +1421,33 @@ export class ChatUI {
     };
 
     this.recognition.onresult = (event) => {
+      // Reset silence timeout on any result
+      if (this.silenceTimeout) {
+        clearTimeout(this.silenceTimeout);
+      }
+      
       let finalTranscript = '';
       let interimTranscript = '';
 
       for (let i = event.resultIndex; i < event.results.length; ++i) {
-        if (event.results[i].isFinal) {
-          finalTranscript += event.results[i][0].transcript;
+        const result = event.results[i];
+        if (result.isFinal) {
+          // Use highest confidence alternative
+          let bestTranscript = result[0].transcript;
+          let bestConfidence = result[0].confidence;
+          
+          for (let j = 1; j < result.length; j++) {
+            if (result[j].confidence > bestConfidence) {
+              bestTranscript = result[j].transcript;
+              bestConfidence = result[j].confidence;
+            }
+          }
+          
+          // Post-process common misrecognitions
+          bestTranscript = this.postProcessTranscript(bestTranscript);
+          finalTranscript += bestTranscript;
         } else {
-          interimTranscript += event.results[i][0].transcript;
+          interimTranscript += result[0].transcript;
         }
       }
 
@@ -1365,6 +1457,13 @@ export class ChatUI {
         this.appendToInput(finalTranscript);
         this.lastInterimResult = '';
       }
+      
+      // Auto-stop after 2 seconds of silence (for continuous mode)
+      this.silenceTimeout = setTimeout(() => {
+        if (this.isListening && !this.isManualStop) {
+          this.stopListening();
+        }
+      }, 2000);
     };
     
     this.recognition.onerror = (event) => {
@@ -1385,6 +1484,44 @@ export class ChatUI {
     }
   }
 
+  /**
+   * Post-process transcript to fix common misrecognitions
+   */
+  postProcessTranscript(text) {
+    const replacements = [
+      // App name
+      [/\bchi\b/gi, 'Kai'],
+      [/\bky\b/gi, 'Kai'],
+      [/\bchai\b/gi, 'Kai'],
+      // Tech terms
+      [/\bbird ?cell\b/gi, 'Vercel'],
+      [/\bverse ?l\b/gi, 'Vercel'],
+      [/\bversa?l\b/gi, 'Vercel'],
+      [/\bnext ?js\b/gi, 'Next.js'],
+      [/\breact ?js\b/gi, 'React'],
+      [/\btype ?script\b/gi, 'TypeScript'],
+      [/\bjava ?script\b/gi, 'JavaScript'],
+      [/\bget ?hub\b/gi, 'GitHub'],
+      [/\bgit ?hub\b/gi, 'GitHub'],
+      [/\bopen ?ai\b/gi, 'OpenAI'],
+      [/\bgpt\b/gi, 'GPT'],
+      [/\bcloud\b/gi, 'Claude'], // Often misheard
+      [/\banthropic\b/gi, 'Anthropic'],
+      // Common programming terms
+      [/\ba p i\b/gi, 'API'],
+      [/\bu r l\b/gi, 'URL'],
+      [/\bhtml\b/gi, 'HTML'],
+      [/\bcss\b/gi, 'CSS'],
+    ];
+    
+    let result = text;
+    for (const [pattern, replacement] of replacements) {
+      result = result.replace(pattern, replacement);
+    }
+    
+    return result;
+  }
+
   appendToInput(text) {
     if (!text) return;
     const currentVal = this.messageInput.value;
@@ -1397,6 +1534,10 @@ export class ChatUI {
 
   stopListening() {
     this.isManualStop = true;
+    if (this.silenceTimeout) {
+      clearTimeout(this.silenceTimeout);
+      this.silenceTimeout = null;
+    }
     if (this.recognition) {
       this.recognition.stop();
     }
