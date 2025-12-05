@@ -1,9 +1,9 @@
 /**
  * Kai PWA Service Worker
- * Version 1.2.0
+ * Version 1.3.0
  */
 
-const CACHE_VERSION = '1.2.0';
+const CACHE_VERSION = '1.3.0';
 const CACHE_NAME = `kai-v${CACHE_VERSION}`;
 
 // Use relative paths that work in subdirectories
@@ -16,7 +16,11 @@ const STATIC_ASSETS = [
   './favicon.svg',
   './icons/icon-192.png',
   './icons/icon-512.png',
-  './icons/apple-touch-icon.png'
+  './icons/apple-touch-icon.png',
+  './src/opencode/styles.css',
+  './src/opencode/ui.js',
+  './src/opencode/storage.js',
+  './src/opencode/api.js'
 ];
 
 // Install event - cache static assets

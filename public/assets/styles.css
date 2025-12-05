@@ -282,13 +282,15 @@ button, a, .conversation-item, .prompt-chip {
   height: 60px;
   display: flex;
   align-items: center;
+  justify-content: space-between;
   padding: 0 1.5rem;
   padding-top: env(safe-area-inset-top);
   z-index: 10;
-  pointer-events: none; /* Let clicks pass through to messages */
+  pointer-events: none;
 }
 
-.header-left {
+.header-left,
+.header-right {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -304,7 +306,7 @@ button, a, .conversation-item, .prompt-chip {
 
 .icon-btn-ghost {
   background: transparent !important;
-  color: #888; /* Pure subtle gray */
+  color: #888;
   width: 40px; height: 40px;
   border-radius: 50%;
   display: flex; align-items: center; justify-content: center;

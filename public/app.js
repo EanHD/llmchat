@@ -1,6 +1,6 @@
 /**
  * Kai - Private AI Chat PWA
- * Version 1.2.0
+ * Version 1.3.0
  */
 
 import { storage } from './src/core/storage.js';
@@ -12,6 +12,7 @@ import { MemoryUI } from './src/ui/memory.js';
 import { toast } from './src/ui/toast.js';
 import { DEFAULT_SETTINGS } from './src/models/settings.js';
 import { shortcuts } from './src/core/shortcuts.js';
+import { openCodeUI } from './src/opencode/ui.js';
 
 class App {
   constructor() {
@@ -19,6 +20,7 @@ class App {
     this.sidebarUI = null;
     this.settingsUI = null;
     this.memoryUI = null;
+    this.openCodeUI = null;
     this.offlineBanner = null;
   }
 
@@ -47,6 +49,10 @@ class App {
       this.sidebarUI = new SidebarUI();
       this.settingsUI = new SettingsUI();
       this.memoryUI = new MemoryUI();
+
+      // Initialize OpenCode IDE
+      await openCodeUI.init();
+      this.setupOpenCodeToggle();
 
       // Personal PWA features
       this.setupKeyboardShortcuts();
@@ -126,6 +132,18 @@ class App {
     // Clear URL params after processing
     if (params.toString()) {
       window.history.replaceState({}, '', window.location.pathname + window.location.hash);
+    }
+  }
+
+  /**
+   * Setup OpenCode toggle button
+   */
+  setupOpenCodeToggle() {
+    const toggleBtn = document.getElementById('opencode-toggle');
+    if (toggleBtn) {
+      toggleBtn.addEventListener('click', () => {
+        openCodeUI.toggle();
+      });
     }
   }
 
