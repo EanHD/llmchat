@@ -3,50 +3,51 @@
   "short_name": "Kai",
   "description": "Your private AI companion — powered by local models",
   "start_url": "./",
+  "scope": "./",
   "display": "standalone",
-  "background_color": "#0f0f18",
-  "theme_color": "#0f0f18",
+  "background_color": "#000000",
+  "theme_color": "#000000",
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "./icons/icon-192.svg",
+      "src": "./icons/icon-192.png",
       "sizes": "192x192",
-      "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "type": "image/png",
+      "purpose": "any"
     },
     {
-      "src": "./icons/icon-512.svg",
+      "src": "./icons/icon-512.png",
       "sizes": "512x512",
-      "type": "image/svg+xml",
-      "purpose": "any maskable"
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "./icons/icon-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "./icons/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
     }
   ],
   "shortcuts": [
     {
       "name": "New Chat",
-      "short_name": "New Chat",
+      "short_name": "New",
       "description": "Start a new conversation",
       "url": "./?action=new",
       "icons": [
         {
-          "src": "./icons/icon-192.svg",
-          "sizes": "192x192"
-        }
-      ]
-    },
-    {
-      "name": "Settings",
-      "short_name": "Settings",
-      "description": "Open settings",
-      "url": "./?action=settings",
-      "icons": [
-        {
-          "src": "./icons/icon-192.svg",
-          "sizes": "192x192"
+          "src": "./icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
         }
       ]
     }
   ],
-  "categories": ["productivity", "utilities"],
-  "screenshots": []
+  "categories": ["productivity", "utilities"]
 }

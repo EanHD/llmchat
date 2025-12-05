@@ -1,10 +1,10 @@
 /**
- * Service Worker for LLM Chat PWA
- * Cache-first for static assets, network-first for API calls
+ * Kai PWA Service Worker
+ * Version 1.2.0
  */
 
-const CACHE_VERSION = '1.0.2';
-const CACHE_NAME = `llmchat-v${CACHE_VERSION}`;
+const CACHE_VERSION = '1.2.0';
+const CACHE_NAME = `kai-v${CACHE_VERSION}`;
 
 // Use relative paths that work in subdirectories
 const STATIC_ASSETS = [
@@ -14,8 +14,9 @@ const STATIC_ASSETS = [
   './assets/styles.css',
   './app.js',
   './favicon.svg',
-  './icons/icon-192.svg',
-  './icons/icon-512.svg'
+  './icons/icon-192.png',
+  './icons/icon-512.png',
+  './icons/apple-touch-icon.png'
 ];
 
 // Install event - cache static assets
@@ -33,7 +34,7 @@ self.addEventListener('activate', (event) => {
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames
-          .filter((cacheName) => cacheName.startsWith('llmchat-') && cacheName !== CACHE_NAME)
+          .filter((cacheName) => cacheName.startsWith('kai-') && cacheName !== CACHE_NAME)
           .map((cacheName) => caches.delete(cacheName))
       );
     }).then(() => self.clients.claim())

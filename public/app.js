@@ -1,5 +1,6 @@
 /**
- * LLM Chat - Main Application Entry Point
+ * Kai - Private AI Chat PWA
+ * Version 1.2.0
  */
 
 import { storage } from './src/core/storage.js';
@@ -61,6 +62,8 @@ class App {
       this.setupSendSpinner();
       this.setupPromptChips();
       this.setupUserMenu();
+      this.setupHapticFeedback();
+      this.setupNativeScrolling();
 
       // Set up error boundary
       this.setupErrorBoundary();
@@ -147,22 +150,116 @@ class App {
 
   setupKeyboardDetection() {
     const input = document.getElementById('message-input');
+    const chatContainer = document.getElementById('chat-container');
     if (!input) return;
 
+    // Use visualViewport API for reliable iOS keyboard detection
+    if (window.visualViewport) {
+      let lastHeight = window.visualViewport.height;
+      
+      window.visualViewport.addEventListener('resize', () => {
+        const currentHeight = window.visualViewport.height;
+        const heightDiff = lastHeight - currentHeight;
+        
+        // Keyboard opened (viewport shrunk significantly)
+        if (heightDiff > 100) {
+          document.body.classList.add('keyboard-open');
+          // Scroll to keep input visible
+          setTimeout(() => {
+            if (chatContainer) {
+              chatContainer.scrollTop = chatContainer.scrollHeight;
+            }
+          }, 100);
+        } 
+        // Keyboard closed
+        else if (heightDiff < -100) {
+          document.body.classList.remove('keyboard-open');
+        }
+        
+        lastHeight = currentHeight;
+      });
+    }
+
+    // Fallback for older browsers
     const onFocus = () => {
       document.body.classList.add('keyboard-open');
-      // Ensure view is scrolled correctly
       setTimeout(() => {
-        window.scrollTo(0, 0);
-      }, 100);
+        if (chatContainer) {
+          chatContainer.scrollTop = chatContainer.scrollHeight;
+        }
+      }, 300);
     };
 
     const onBlur = () => {
-      document.body.classList.remove('keyboard-open');
+      // Small delay to prevent flicker during keyboard switch
+      setTimeout(() => {
+        if (document.activeElement !== input) {
+          document.body.classList.remove('keyboard-open');
+        }
+      }, 100);
     };
 
     input.addEventListener('focus', onFocus);
     input.addEventListener('blur', onBlur);
+  }
+
+  /**
+   * Setup haptic feedback for native feel
+   */
+  setupHapticFeedback() {
+    // Trigger haptic on button clicks
+    const triggerHaptic = (style = 'light') => {
+      if ('vibrate' in navigator) {
+        const patterns = {
+          light: [10],
+          medium: [20],
+          heavy: [30],
+          success: [10, 50, 10],
+          error: [50, 30, 50]
+        };
+        navigator.vibrate(patterns[style] || patterns.light);
+      }
+    };
+
+    // Add haptic to all buttons
+    document.addEventListener('click', (e) => {
+      const btn = e.target.closest('button');
+      if (btn) {
+        triggerHaptic('light');
+      }
+    }, { passive: true });
+
+    // Expose for other uses
+    window.haptic = triggerHaptic;
+  }
+
+  /**
+   * Setup native-like scrolling behavior
+   */
+  setupNativeScrolling() {
+    const chatContainer = document.getElementById('chat-container');
+    if (!chatContainer) return;
+
+    // Auto-scroll to bottom when new messages arrive
+    const messagesEl = document.getElementById('messages');
+    if (messagesEl) {
+      const observer = new MutationObserver((mutations) => {
+        // Check if we're near the bottom (within 150px)
+        const isNearBottom = chatContainer.scrollHeight - chatContainer.scrollTop - chatContainer.clientHeight < 150;
+        
+        if (isNearBottom) {
+          // Smooth scroll to bottom for new messages
+          requestAnimationFrame(() => {
+            chatContainer.scrollTo({
+              top: chatContainer.scrollHeight,
+              behavior: 'smooth'
+            });
+          });
+        }
+      });
+
+      observer.observe(messagesEl, { childList: true, subtree: true });
+    }
   }
 
   setupPullToRefreshReload() {
