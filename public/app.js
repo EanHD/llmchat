@@ -83,6 +83,9 @@ class App {
       // Apply theme
       await this.applyTheme();
 
+      // Setup PWA install prompt
+      this.setupInstallPrompt();
+
       // Show app
       document.getElementById('app').style.display = 'flex';
     } catch (error) {
@@ -123,6 +126,35 @@ class App {
     if (params.has('memory')) {
       setTimeout(() => {
         document.getElementById('memory-panel')?.classList.remove('hidden');
+      }, 600);
+    }
+
+    // Handle share target (from Web Share Target API)
+    if (params.has('share') || params.has('text') || params.has('url') || params.has('title')) {
+      setTimeout(() => {
+        const sharedText = params.get('text') || '';
+        const sharedUrl = params.get('url') || '';
+        const sharedTitle = params.get('title') || '';
+        
+        // Compose shared content
+        let content = '';
+        if (sharedTitle) content += sharedTitle + '\n';
+        if (sharedText) content += sharedText + '\n';
+        if (sharedUrl) content += sharedUrl;
+        content = content.trim();
+        
+        if (content) {
+          // Start new chat and pre-fill input
+          state.setCurrentConversation(null);
+          state.setMessages([]);
+          const input = document.getElementById('message-input');
+          if (input) {
+            input.value = content;
+            input.dispatchEvent(new Event('input'));
+            input.focus();
+          }
+          toast.success('Content ready to send');
+        }
       }, 600);
     }
 
@@ -730,6 +762,83 @@ class App {
         setTimeout(() => state.clearError(), 5000);
       }
     });
+  }
+
+  /**
+   * Setup PWA install prompt handler
+   */
+  setupInstallPrompt() {
+    let deferredPrompt = null;
+
+    // Listen for beforeinstallprompt event
+    window.addEventListener('beforeinstallprompt', (e) => {
+      // Prevent the mini-infobar from appearing on mobile
+      e.preventDefault();
+      // Stash the event so it can be triggered later
+      deferredPrompt = e;
+      
+      // Check if we've already asked or user dismissed
+      const dismissed = localStorage.getItem('pwa-install-dismissed');
+      if (dismissed) return;
+      
+      // Show custom install prompt after a brief delay
+      setTimeout(() => {
+        this.showInstallPrompt(deferredPrompt);
+      }, 30000); // 30 seconds after app loads
+    });
+
+    // Listen for successful installation
+    window.addEventListener('appinstalled', () => {
+      deferredPrompt = null;
+      localStorage.setItem('pwa-installed', 'true');
+      toast.success('Kai installed successfully!');
+    });
+  }
+
+  /**
+   * Show custom install prompt
+   */
+  showInstallPrompt(deferredPrompt) {
+    if (!deferredPrompt) return;
+    
+    // Check if already installed
+    if (window.matchMedia('(display-mode: standalone)').matches) return;
+    if (localStorage.getItem('pwa-installed')) return;
+    
+    const banner = document.createElement('div');
+    banner.className = 'install-banner';
+    banner.innerHTML = `
+      <div class="install-banner-content">
+        <span>📱 Install Kai for the best experience</span>
+        <div class="install-banner-actions">
+          <button class="install-banner-dismiss">Later</button>
+          <button class="install-banner-install">Install</button>
+        </div>
+      </div>
+    `;
+    
+    document.body.appendChild(banner);
+    
+    // Handle install
+    banner.querySelector('.install-banner-install').addEventListener('click', async () => {
+      banner.remove();
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'dismissed') {
+        localStorage.setItem('pwa-install-dismissed', Date.now().toString());
+      }
+    });
+    
+    // Handle dismiss
+    banner.querySelector('.install-banner-dismiss').addEventListener('click', () => {
+      banner.remove();
+      localStorage.setItem('pwa-install-dismissed', Date.now().toString());
+    });
+    
+    // Auto-hide after 10 seconds
+    setTimeout(() => {
+      if (banner.parentNode) banner.remove();
+    }, 10000);
   }
 
   /**

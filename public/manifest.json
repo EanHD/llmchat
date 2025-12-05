@@ -4,10 +4,19 @@
   "description": "Your private AI companion — powered by local models",
   "start_url": "./",
   "scope": "./",
+  "id": "/kai",
   "display": "standalone",
+  "display_override": ["standalone", "minimal-ui"],
   "background_color": "#000000",
   "theme_color": "#000000",
   "orientation": "portrait-primary",
+  "dir": "ltr",
+  "lang": "en",
+  "prefer_related_applications": false,
+  "launch_handler": {
+    "client_mode": "focus-existing"
+  },
+  "handle_links": "preferred",
   "icons": [
     {
       "src": "./icons/icon-192.png",
@@ -32,6 +41,18 @@
       "sizes": "180x180",
       "type": "image/png",
       "purpose": "any"
+    },
+    {
+      "src": "./icons/icon-192.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "./icons/icon-512.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
     }
   ],
   "shortcuts": [
@@ -49,5 +70,14 @@
       ]
     }
   ],
-  "categories": ["productivity", "utilities"]
+  "share_target": {
+    "action": "./?share=true",
+    "method": "GET",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
+  },
+  "categories": ["productivity", "utilities", "personalization"]
 }
