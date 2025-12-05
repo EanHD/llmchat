@@ -87,9 +87,22 @@ body {
   right: 0;
   bottom: 0;
   width: 100%;
-  /* Extend background into safe areas */
+  /* Extend background into safe areas - critical for iOS PWA */
   padding: 0;
   margin: 0;
+}
+
+/* Ensure background color fills entire screen including safe areas */
+html::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #000;
+  z-index: -1;
+  pointer-events: none;
 }
 
 /* Allow text selection in specific areas */
@@ -148,6 +161,7 @@ button, a, .conversation-item, .prompt-chip {
   height: 100%;
   min-height: 0;
   overflow: hidden;
+  /* Ensure main area background extends to cover safe areas */
 }
 
 /* Header - fixed at top */
@@ -207,7 +221,8 @@ button, a, .conversation-item, .prompt-chip {
 .input-container {
   flex: 0 0 auto;
   padding: 12px 16px;
-  padding-bottom: 12px;
+  /* Include safe area in padding, background extends into it */
+  padding-bottom: calc(12px + var(--safe-bottom));
   background: #000;
   border-top: 1px solid rgba(255,255,255,0.08);
   display: flex;
@@ -219,23 +234,11 @@ button, a, .conversation-item, .prompt-chip {
   transition: none;
 }
 
-/* Safe area spacer - fills the black void */
-.input-container::after {
-  content: '';
-  display: block;
-  width: 100%;
-  height: var(--safe-bottom);
-  background: #000;
-  flex-shrink: 0;
-}
+/* Safe area handled in padding now, no need for pseudo-element */
 
 /* When keyboard is open on iOS */
 body.keyboard-open .input-container {
   padding-bottom: 12px;
-}
-
-body.keyboard-open .input-container::after {
-  display: none;
 }
 
 .input-wrapper {
@@ -387,21 +390,15 @@ body.keyboard-open .input-container::after {
 
 .sidebar-footer { 
   padding: 1rem; 
+  /* Include safe area padding with background color */
+  padding-bottom: calc(1rem + var(--safe-bottom));
   border-top: 1px solid var(--border-color); 
   display: flex; 
   justify-content: space-between;
   background: var(--bg-sidebar);
 }
 
-/* Extend sidebar background into safe area */
-.sidebar::after {
-  content: '';
-  display: block;
-  width: 100%;
-  height: var(--safe-bottom);
-  background: var(--bg-sidebar);
-  flex-shrink: 0;
-}
+/* No longer need pseudo element since footer includes safe area */
 
 .sidebar-footer-actions {
   display: flex; 
@@ -1505,17 +1502,28 @@ button.primary:active { transform: translateY(0); }
    PWA SPECIFIC - iOS
    ======================== */
 @media (display-mode: standalone) {
-  /* PWA fullscreen mode */
+  /* PWA fullscreen mode - ensure full coverage */
   html, body {
     height: 100%;
     min-height: 100%;
     min-height: 100dvh;
     min-height: -webkit-fill-available;
     overscroll-behavior: none;
+    /* Extend background to cover entire screen including safe areas */
+    background: #000 !important;
   }
   
-  #app, .main {
+  /* Ensure #app fills the entire safe area */
+  #app {
     height: 100%;
+    /* Use min-height to account for safe areas */
+    min-height: calc(100% + env(safe-area-inset-bottom, 0px));
+    background: #000;
+  }
+  
+  .main {
+    height: 100%;
+    background: #000;
   }
   
   .chat-header {
