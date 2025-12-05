@@ -1163,7 +1163,7 @@ export class ChatUI {
              markdownRenderer.setupCopyButtons(contentEl);
              this.addMessageActions(contentEl);
           } else {
-            if (message.status === 'streaming' && !message.content) {
+            if ((message.status === 'streaming' || message.status === 'pending') && !message.content) {
                contentEl.innerHTML = '<div class="thinking-indicator"><span class="thinking-text">Kai is thinking</span><span class="thinking-dots-inline"><span class="dot"></span><span class="dot"></span><span class="dot"></span></span></div>';
             } else if (contentEl.textContent !== message.content) {
                contentEl.textContent = message.content;

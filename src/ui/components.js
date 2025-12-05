@@ -63,8 +63,8 @@ export function createMessageBubble(message) {
     className: 'message-content'
   });
   
-  // Show thinking indicator for assistant messages that are streaming with no content yet
-  if (role === 'assistant' && status === 'streaming' && !content) {
+  // Show thinking indicator for assistant messages that are pending/streaming with no content yet
+  if (role === 'assistant' && (status === 'streaming' || status === 'pending') && !content) {
     messageContent.innerHTML = '<div class="thinking-indicator"><span class="thinking-text">Kai is thinking</span><span class="thinking-dots-inline"><span class="dot"></span><span class="dot"></span><span class="dot"></span></span></div>';
   } else {
     messageContent.textContent = content || '';
