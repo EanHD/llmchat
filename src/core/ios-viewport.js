@@ -1,126 +1,99 @@
 /**
  * iOS Viewport & Keyboard Handler
- * Handles iOS Safari quirks with keyboard and safe viewport height
+ * Native PWA keyboard handling - NO transforms, flexbox-based layout
  */
 
 export class IOSViewportHandler {
   constructor() {
-    this.inputBar = null;
     this.chatContainer = null;
     this.input = null;
-    this.lastViewportHeight = 0;
+    this.isKeyboardOpen = false;
+    this.initialHeight = 0;
   }
 
-  /**
-   * Initialize viewport handling
-   */
   init() {
-    this.inputBar = document.getElementById('input-area');
     this.chatContainer = document.getElementById('chat-container');
     this.input = document.getElementById('message-input');
+    this.initialHeight = window.innerHeight;
     
-    // Set initial app height
-    this.setAppHeight();
+    // Set initial height
+    this.updateHeight();
     
-    // Update on resize/orientation change
-    window.addEventListener('resize', () => this.setAppHeight());
-    window.addEventListener('orientationchange', () => {
-      setTimeout(() => this.setAppHeight(), 100);
-    });
-    
-    // Setup keyboard handling
-    this.setupKeyboardHandling();
-  }
-
-  /**
-   * Set --app-height CSS variable to actual visible height
-   */
-  setAppHeight() {
-    const vh = window.visualViewport ? window.visualViewport.height : window.innerHeight;
-    document.documentElement.style.setProperty('--app-height', `${vh}px`);
-  }
-
-  /**
-   * Setup keyboard detection and input bar positioning
-   */
-  setupKeyboardHandling() {
-    if (!this.inputBar) return;
-
-    // Use visualViewport API for iOS keyboard detection
+    // The key: use visualViewport to update ONLY --app-height
+    // Let CSS flexbox handle everything else
     if (window.visualViewport) {
-      this.lastViewportHeight = window.visualViewport.height;
-      
-      const onViewportChange = () => {
-        const vv = window.visualViewport;
-        
-        // Calculate keyboard offset
-        // This is how much the visual viewport has shrunk from the layout viewport
-        const keyboardOffset = window.innerHeight - vv.height - vv.offsetTop;
-        
-        // Update CSS variable for transform
-        document.documentElement.style.setProperty('--keyboard-offset', `${Math.max(0, keyboardOffset)}px`);
-        
-        // Detect keyboard open/close
-        const heightDiff = this.lastViewportHeight - vv.height;
-        
-        if (heightDiff > 100) {
-          // Keyboard opened
-          document.body.classList.add('keyboard-open');
-          // Scroll chat to bottom
-          this.scrollToBottom();
-        } else if (heightDiff < -100) {
-          // Keyboard closed
-          document.body.classList.remove('keyboard-open');
-          // Reset offset
-          document.documentElement.style.setProperty('--keyboard-offset', '0px');
-        }
-        
-        this.lastViewportHeight = vv.height;
-      };
-
-      window.visualViewport.addEventListener('resize', onViewportChange);
-      window.visualViewport.addEventListener('scroll', onViewportChange);
-      
-    } else {
-      // Fallback for browsers without visualViewport
-      this.setupFallbackKeyboardHandling();
+      window.visualViewport.addEventListener('resize', () => this.onViewportResize());
+      window.visualViewport.addEventListener('scroll', () => this.onViewportScroll());
     }
-
-    // Always scroll to bottom on input focus
+    
+    // Backup listeners
+    window.addEventListener('resize', () => this.updateHeight());
+    window.addEventListener('orientationchange', () => {
+      setTimeout(() => this.updateHeight(), 150);
+    });
+    
+    // Focus handling
     if (this.input) {
-      this.input.addEventListener('focus', () => {
-        setTimeout(() => this.scrollToBottom(), 150);
-      });
+      this.input.addEventListener('focus', () => this.onInputFocus());
+      this.input.addEventListener('blur', () => this.onInputBlur());
     }
   }
 
-  /**
-   * Fallback keyboard handling for older browsers
-   */
-  setupFallbackKeyboardHandling() {
-    if (!this.input) return;
-
-    this.input.addEventListener('focus', () => {
-      document.body.classList.add('keyboard-open');
-      setTimeout(() => this.scrollToBottom(), 300);
-    });
-
-    this.input.addEventListener('blur', () => {
-      setTimeout(() => {
-        if (document.activeElement !== this.input) {
-          document.body.classList.remove('keyboard-open');
-          document.documentElement.style.setProperty('--keyboard-offset', '0px');
-        }
-      }, 100);
-    });
+  updateHeight() {
+    const height = window.visualViewport 
+      ? window.visualViewport.height 
+      : window.innerHeight;
+    document.documentElement.style.setProperty('--app-height', `${height}px`);
   }
 
-  /**
-   * Scroll chat container to bottom smoothly
-   */
+  onViewportResize() {
+    const vv = window.visualViewport;
+    const height = vv.height;
+    
+    // Update app height to match visual viewport
+    document.documentElement.style.setProperty('--app-height', `${height}px`);
+    
+    // Detect keyboard
+    const keyboardVisible = (this.initialHeight - height) > 150;
+    
+    if (keyboardVisible && !this.isKeyboardOpen) {
+      this.isKeyboardOpen = true;
+      document.body.classList.add('keyboard-open');
+      this.scrollToBottom();
+    } else if (!keyboardVisible && this.isKeyboardOpen) {
+      this.isKeyboardOpen = false;
+      document.body.classList.remove('keyboard-open');
+    }
+  }
+
+  onViewportScroll() {
+    // On iOS, when keyboard shows, viewport can scroll
+    // We need to keep the app height updated
+    this.updateHeight();
+  }
+
+  onInputFocus() {
+    // Small delay to let keyboard animate
+    setTimeout(() => {
+      this.scrollToBottom();
+      this.updateHeight();
+    }, 100);
+  }
+
+  onInputBlur() {
+    // Reset after keyboard dismisses
+    setTimeout(() => {
+      if (document.activeElement !== this.input) {
+        this.isKeyboardOpen = false;
+        document.body.classList.remove('keyboard-open');
+        this.initialHeight = window.innerHeight;
+        this.updateHeight();
+      }
+    }, 100);
+  }
+
   scrollToBottom() {
     if (!this.chatContainer) return;
-    
     requestAnimationFrame(() => {
       this.chatContainer.scrollTo({
         top: this.chatContainer.scrollHeight,
@@ -130,5 +103,4 @@ export class IOSViewportHandler {
   }
 }
 
-// Singleton instance
 export const iosViewport = new IOSViewportHandler();
