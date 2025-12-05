@@ -3,6 +3,7 @@
  * Version 2.0.0
  */
 
+import { initAuth } from './src/core/auth.js';
 import { storage } from './src/core/storage.js';
 import { state } from './src/core/state.js';
 import { ChatUI } from './src/ui/chat.js';
@@ -31,6 +32,10 @@ class App {
    */
   async init() {
     try {
+      // Check auth first
+      const authenticated = await initAuth();
+      if (!authenticated) return; // Login screen shown
+      
       // Register Service Worker first
       await this.registerServiceWorker();
 

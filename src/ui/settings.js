@@ -301,6 +301,20 @@ export class SettingsUI {
     }, 'Reset to Defaults');
 
     this.settingsContent.appendChild(resetBtn);
+    
+    // Logout button
+    const logoutBtn = createElement('button', {
+      className: 'setting-btn danger',
+      style: 'background: #dc2626; margin-top: 8px;',
+      onClick: () => {
+        if (confirm('Log out of Kai?')) {
+          localStorage.removeItem('kai_authenticated');
+          window.location.reload();
+        }
+      }
+    }, 'Log Out');
+
+    this.settingsContent.appendChild(logoutBtn);
   }
 
   /**
