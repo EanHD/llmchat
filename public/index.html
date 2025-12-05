@@ -112,31 +112,31 @@
         </svg>
       </button>
 
-      <!-- Context Menu (floating above input) -->
-      <div id="context-menu" class="context-menu hidden">
-        <div class="context-menu-item" id="context-add-text">
-          <span class="context-menu-icon">📝</span>
-          <span class="context-menu-label">Add text context</span>
-        </div>
-        <div class="context-menu-item" id="context-add-file">
-          <span class="context-menu-icon">📎</span>
-          <span class="context-menu-label">Attach files</span>
-        </div>
-      </div>
-
-      <!-- Context Panel (shows when adding text) -->
-      <div id="context-panel" class="context-panel hidden">
-        <div class="context-panel-header">
-          <span class="context-panel-title">Context</span>
-          <button id="close-context-panel" class="context-panel-close">&times;</button>
-        </div>
-        <textarea id="context-input" class="context-panel-input" placeholder="Paste code, text, or any context here..." rows="4"></textarea>
-        <div id="attachment-previews" class="attachment-previews"></div>
-      </div>
-
       <div id="input-area" class="input-container">
         <!-- Hidden file input for attachments -->
         <input type="file" id="file-input" multiple accept="image/*,.pdf,.txt,.md,.json,.js,.ts,.jsx,.tsx,.py,.html,.css,.csv" hidden>
+        
+        <!-- Context Menu (floating above input) -->
+        <div id="context-menu" class="context-menu hidden">
+          <div class="context-menu-item" id="context-add-text">
+            <span class="context-menu-icon">📝</span>
+            <span class="context-menu-label">Add text context</span>
+          </div>
+          <div class="context-menu-item" id="context-add-file">
+            <span class="context-menu-icon">📎</span>
+            <span class="context-menu-label">Attach files</span>
+          </div>
+        </div>
+
+        <!-- Context Panel (shows when adding text) -->
+        <div id="context-panel" class="context-panel hidden">
+          <div class="context-panel-header">
+            <span class="context-panel-title">Context</span>
+            <button id="close-context-panel" class="context-panel-close">&times;</button>
+          </div>
+          <textarea id="context-input" class="context-panel-input" placeholder="Paste code, text, or any context here..." rows="4"></textarea>
+          <div id="attachment-previews" class="attachment-previews"></div>
+        </div>
         
         <div class="input-wrapper">
           <button id="attach-btn" class="input-icon-btn" aria-label="Add context" title="Add context or files">
