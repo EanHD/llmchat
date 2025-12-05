@@ -14,6 +14,7 @@ import { $, clearElement } from '../utils/dom.js';
 import { generateTitle } from '../utils/format.js';
 import { shortcuts } from '../core/shortcuts.js';
 import { agentMode } from '../agent/agent-mode.js';
+import { attachments, FileCategories } from '../core/attachments.js';
 
 export class ChatUI {
   constructor() {
@@ -24,6 +25,8 @@ export class ChatUI {
     this.micBtn = $('#mic-btn');
     this.attachBtn = $('#attach-btn');
     this.chatTitle = $('#chat-title');
+    this.fileInput = $('#file-input');
+    this.attachmentPreviews = $('#attachment-previews');
     
     this.apiClient = null;
     this.isSubmitting = false;
@@ -115,12 +118,21 @@ export class ChatUI {
       });
     }
 
-    // Attach button (Placeholder)
-    if (this.attachBtn) {
+    // Attach button - opens file picker
+    if (this.attachBtn && this.fileInput) {
       this.attachBtn.addEventListener('click', () => {
-        this.showToast('Attachments coming soon');
+        this.fileInput.click();
+      });
+      
+      this.fileInput.addEventListener('change', (e) => {
+        this.handleFileSelect(e.target.files);
+        // Reset input so same file can be selected again
+        this.fileInput.value = '';
       });
     }
+    
+    // Drag and drop support
+    this.setupDragAndDrop();
     
     // Track user scroll
     this.chatContainer.addEventListener('scroll', () => {
@@ -131,6 +143,194 @@ export class ChatUI {
     this.setupPullToRefresh();
   }
 
+  /**
+   * Setup drag and drop for file uploads
+   */
+  setupDragAndDrop() {
+    const dropZone = this.chatContainer;
+    if (!dropZone) return;
+
+    ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+      dropZone.addEventListener(eventName, (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+      });
+    });
+
+    ['dragenter', 'dragover'].forEach(eventName => {
+      dropZone.addEventListener(eventName, () => {
+        dropZone.classList.add('drag-over');
+      });
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+      dropZone.addEventListener(eventName, () => {
+        dropZone.classList.remove('drag-over');
+      });
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+      const files = e.dataTransfer?.files;
+      if (files && files.length > 0) {
+        this.handleFileSelect(files);
+      }
+    });
+  }
+
+  /**
+   * Handle file selection
+   */
+  async handleFileSelect(files) {
+    if (!files || files.length === 0) return;
+
+    for (const file of files) {
+      try {
+        const attachment = await attachments.addFile(file);
+        this.renderAttachmentPreviews();
+        this.updateAttachButton();
+        this.toggleInputButtons(); // Show send button if attachments added
+      } catch (error) {
+        this.showToast(error.message);
+      }
+    }
+  }
+
+  /**
+   * Render attachment previews
+   */
+  renderAttachmentPreviews() {
+    if (!this.attachmentPreviews) return;
+
+    const allAttachments = attachments.getAttachments();
+    
+    if (allAttachments.length === 0) {
+      this.attachmentPreviews.classList.add('hidden');
+      this.attachmentPreviews.innerHTML = '';
+      return;
+    }
+
+    this.attachmentPreviews.classList.remove('hidden');
+    this.attachmentPreviews.innerHTML = allAttachments.map(att => {
+      if (att.category === FileCategories.IMAGE) {
+        return `
+          <div class="attachment-preview" data-id="${att.id}">
+            <img src="${att.preview}" alt="${att.name}">
+            <button class="attachment-remove" aria-label="Remove">&times;</button>
+            <span class="attachment-name">${this.truncateFilename(att.name)}</span>
+          </div>
+        `;
+      } else {
+        const icon = att.category === FileCategories.CODE ? '📄' : 
+                     att.category === FileCategories.DOCUMENT ? '📑' : '📝';
+        return `
+          <div class="attachment-preview attachment-file" data-id="${att.id}">
+            <span class="attachment-icon">${icon}</span>
+            <button class="attachment-remove" aria-label="Remove">&times;</button>
+            <span class="attachment-name">${this.truncateFilename(att.name)}</span>
+          </div>
+        `;
+      }
+    }).join('');
+
+    // Add remove handlers
+    this.attachmentPreviews.querySelectorAll('.attachment-remove').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const preview = e.target.closest('.attachment-preview');
+        const id = preview?.dataset.id;
+        if (id) {
+          attachments.removeAttachment(id);
+          this.renderAttachmentPreviews();
+          this.updateAttachButton();
+          this.toggleInputButtons();
+        }
+      });
+    });
+  }
+
+  /**
+   * Update attach button state
+   */
+  updateAttachButton() {
+    if (!this.attachBtn) return;
+    
+    const count = attachments.getAttachments().length;
+    if (count > 0) {
+      this.attachBtn.classList.add('has-attachments');
+      this.attachBtn.setAttribute('data-count', count);
+    } else {
+      this.attachBtn.classList.remove('has-attachments');
+      this.attachBtn.removeAttribute('data-count');
+    }
+  }
+
+  /**
+   * Truncate filename for display
+   */
+  truncateFilename(name, maxLen = 15) {
+    if (name.length <= maxLen) return name;
+    const ext = name.split('.').pop();
+    const base = name.slice(0, -(ext.length + 1));
+    const truncated = base.slice(0, maxLen - ext.length - 4) + '...';
+    return `${truncated}.${ext}`;
+  }
+
+  /**
+   * Format message with attachments for API (OpenAI vision format)
+   */
+  formatMessageWithAttachments(textContent, messageAttachments) {
+    if (!messageAttachments || messageAttachments.length === 0) {
+      return textContent;
+    }
+
+    // Get full attachment data from the attachments module
+    const fullAttachments = attachments.getAttachments();
+    
+    // Build content array for vision API
+    const content = [];
+    
+    // Add text content first
+    if (textContent) {
+      content.push({
+        type: 'text',
+        text: textContent
+      });
+    }
+
+    // Add attachments
+    for (const att of messageAttachments) {
+      const fullAtt = fullAttachments.find(a => a.id === att.id);
+      
+      if (att.category === FileCategories.IMAGE && fullAtt) {
+        content.push({
+          type: 'image_url',
+          image_url: {
+            url: `data:${att.mimeType};base64,${fullAtt.data}`,
+            detail: 'auto'
+          }
+        });
+      } else if ((att.category === FileCategories.TEXT || att.category === FileCategories.CODE) && fullAtt) {
+        // For text/code files, append as code block
+        content.push({
+          type: 'text',
+          text: `\n\n--- File: ${att.name} ---\n\`\`\`\n${fullAtt.data}\n\`\`\``
+        });
+      } else if (att.category === FileCategories.DOCUMENT) {
+        // For PDFs, note that they're attached
+        content.push({
+          type: 'text',
+          text: `\n\n[Attached document: ${att.name}]`
+        });
+      }
+    }
+
+    // If only text (no vision), return as string
+    if (content.length === 1 && content[0].type === 'text') {
+      return content[0].text;
+    }
+
+    return content;
+  }
+
   adjustTextareaHeight() {
     this.messageInput.style.height = 'auto';
     this.messageInput.style.height = Math.min(this.messageInput.scrollHeight, 140) + 'px';
@@ -138,6 +338,7 @@ export class ChatUI {
 
   toggleInputButtons() {
     const hasText = this.messageInput.value.trim().length > 0;
+    const hasAttachments = attachments.hasAttachments();
     
     // If listening, always show mic (as stop button) and hide send
     if (this.isListening) {
@@ -146,7 +347,8 @@ export class ChatUI {
       return;
     }
 
-    if (hasText) {
+    // Show send button if there's text OR attachments
+    if (hasText || hasAttachments) {
       if (this.micBtn) this.micBtn.style.display = 'none';
       this.sendBtn.classList.remove('hidden');
     } else {
@@ -303,8 +505,14 @@ export class ChatUI {
    */
   async handleSendMessage() {
     let content = this.messageInput.value.trim();
+    const hasAttachments = attachments.hasAttachments();
     
-    if (!content || this.isSubmitting) {
+    // Allow sending with just attachments (no text required)
+    if (!content && !hasAttachments) {
+      return;
+    }
+    
+    if (this.isSubmitting) {
       return;
     }
 
@@ -319,13 +527,23 @@ export class ChatUI {
     this.isSubmitting = true;
     this.updateSendButton(true);
 
+    // Get current attachments before clearing
+    const currentAttachments = attachments.getAttachments().map(a => ({
+      id: a.id,
+      name: a.name,
+      size: a.size,
+      mimeType: a.mimeType,
+      category: a.category,
+      preview: a.category === FileCategories.IMAGE ? a.preview : null
+    }));
+
     try {
       // Get or create conversation
       let conversationId = state.getState('currentConversationId');
       
       if (!conversationId) {
         const conversation = new Conversation({
-          title: generateTitle(content, 30),
+          title: generateTitle(content || 'Image', 30),
           model: null // Will be set when we get response
         });
         
@@ -343,8 +561,8 @@ export class ChatUI {
         state.setConversations(conversations);
       }
 
-      // Create user message
-      const userMessage = Message.createUserMessage(conversationId, content);
+      // Create user message with attachments
+      const userMessage = Message.createUserMessage(conversationId, content, currentAttachments);
       
       try {
         await storage.saveMessage(userMessage.toJSON());
@@ -354,9 +572,12 @@ export class ChatUI {
       
       state.addMessage(userMessage.toJSON());
 
-      // Clear input
+      // Clear input and attachments
       this.messageInput.value = '';
       this.adjustTextareaHeight();
+      attachments.clearAttachments();
+      this.renderAttachmentPreviews();
+      this.updateAttachButton();
       this.toggleInputButtons();
 
       // Create assistant message (pending)
@@ -372,12 +593,44 @@ export class ChatUI {
 
       // Get conversation history from STATE
       const stateMessages = state.getState('messages');
+      
+      // Format API messages, handling attachments for vision
       const apiMessages = stateMessages
         .filter(m => m.role !== 'system' && m.status === MessageStatus.COMPLETE)
-        .map(m => ({
-          role: m.role,
-          content: m.content
-        }));
+        .map(m => {
+          // If message has image attachments, use vision format
+          if (m.attachments && m.attachments.length > 0) {
+            const hasImages = m.attachments.some(a => a.category === FileCategories.IMAGE);
+            if (hasImages) {
+              // Build content array for vision API
+              const contentParts = [];
+              if (m.content) {
+                contentParts.push({ type: 'text', text: m.content });
+              }
+              // Note: For stored messages, we'd need to re-fetch image data
+              // For the current message, attachments module has the data
+              return {
+                role: m.role,
+                content: contentParts.length === 1 ? m.content : contentParts
+              };
+            }
+          }
+          return {
+            role: m.role,
+            content: m.content
+          };
+        });
+
+      // Format the current message with attachments for API
+      if (hasAttachments) {
+        const lastMsgIndex = apiMessages.length - 1;
+        if (lastMsgIndex >= 0) {
+          // Get the formatted content with attachments from the attachments module
+          // Note: This uses the original attachments data before we cleared them
+          const formattedContent = this.formatMessageWithAttachments(content, currentAttachments);
+          apiMessages[lastMsgIndex].content = formattedContent;
+        }
+      }
 
       // Get settings
       const settings = await storage.getAllSettings();

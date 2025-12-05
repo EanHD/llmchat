@@ -26,6 +26,7 @@ export class Message {
     this.status = data.status || MessageStatus.COMPLETE;
     this.tokenCount = data.tokenCount || null;
     this.metadata = data.metadata || {};
+    this.attachments = data.attachments || []; // Array of attachment objects
   }
 
   /**
@@ -66,6 +67,10 @@ export class Message {
       errors.push('Invalid metadata');
     }
 
+    if (data.attachments && !Array.isArray(data.attachments)) {
+      errors.push('Invalid attachments');
+    }
+
     return {
       valid: errors.length === 0,
       errors
@@ -96,6 +101,20 @@ export class Message {
   }
 
   /**
+   * Add attachment to message
+   */
+  addAttachment(attachment) {
+    this.attachments.push(attachment);
+  }
+
+  /**
+   * Check if message has attachments
+   */
+  hasAttachments() {
+    return this.attachments && this.attachments.length > 0;
+  }
+
+  /**
    * Convert to plain object for storage
    */
   toJSON() {
@@ -107,7 +126,8 @@ export class Message {
       timestamp: this.timestamp,
       status: this.status,
       tokenCount: this.tokenCount,
-      metadata: this.metadata
+      metadata: this.metadata,
+      attachments: this.attachments
     };
   }
 
@@ -121,12 +141,13 @@ export class Message {
   /**
    * Create user message
    */
-  static createUserMessage(conversationId, content) {
+  static createUserMessage(conversationId, content, attachments = []) {
     return new Message({
       conversationId,
       role: MessageRole.USER,
       content,
-      status: MessageStatus.COMPLETE
+      status: MessageStatus.COMPLETE,
+      attachments
     });
   }
 

@@ -57,7 +57,7 @@ export function createIconButton(iconSvg, options = {}) {
  * Create message bubble
  */
 export function createMessageBubble(message) {
-  const { role, content, status } = message;
+  const { role, content, status, attachments } = message;
   
   const messageContent = createElement('div', {
     className: 'message-content'
@@ -74,6 +74,35 @@ export function createMessageBubble(message) {
     className: `message ${role} ${status || ''}`,
     dataset: { messageId: message.id }
   }, messageContent);
+
+  // Add attachment previews for user messages
+  if (role === 'user' && attachments && attachments.length > 0) {
+    const attachmentsEl = createElement('div', {
+      className: 'message-attachments'
+    });
+    
+    attachments.forEach(att => {
+      if (att.category === 'image' && att.preview) {
+        const imgWrapper = createElement('div', { className: 'message-attachment-img' });
+        const img = createElement('img', { 
+          src: att.preview, 
+          alt: att.name,
+          loading: 'lazy'
+        });
+        imgWrapper.appendChild(img);
+        attachmentsEl.appendChild(imgWrapper);
+      } else {
+        const fileEl = createElement('div', { className: 'message-attachment-file' });
+        const icon = att.category === 'code' ? '📄' : 
+                     att.category === 'document' ? '📑' : '📝';
+        fileEl.innerHTML = `<span class="file-icon">${icon}</span><span class="file-name">${att.name}</span>`;
+        attachmentsEl.appendChild(fileEl);
+      }
+    });
+    
+    // Insert attachments before content
+    messageEl.insertBefore(attachmentsEl, messageContent);
+  }
 
   // Long press for haptics
   let pressTimer;
