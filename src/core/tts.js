@@ -22,12 +22,14 @@ class TTSController {
    */
   async getAudio(text, voice = 'nova') {
     const settings = await storage.getAllSettings();
-    const apiUrl = settings.apiUrl || 'https://kai.eanhd.com';
+    const apiUrl = settings.apiUrl || 'https://api.eanhd.com';
+    const customHeaders = settings.customHeaders || {};
     
     const response = await fetch(`${apiUrl}/v1/audio/speech`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        ...customHeaders
       },
       body: JSON.stringify({
         model: 'tts-1',
@@ -38,7 +40,8 @@ class TTSController {
     });
 
     if (!response.ok) {
-      throw new Error(`TTS failed: ${response.statusText}`);
+      const errorText = await response.text().catch(() => response.statusText);
+      throw new Error(`TTS failed: ${errorText}`);
     }
 
     return await response.blob();

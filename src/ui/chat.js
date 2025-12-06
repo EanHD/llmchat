@@ -1262,7 +1262,8 @@ export class ChatUI {
         try {
           await tts.speak(text.trim(), messageId);
         } catch (error) {
-          this.showToast('Failed to play audio');
+          console.error('TTS error:', error);
+          this.showToast(`Failed to play audio: ${error.message}`);
         }
       }
     });
