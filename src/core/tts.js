@@ -12,9 +12,6 @@ class TTSController {
     this.currentMessageId = null;
     this.playerEl = null;
     this.progressInterval = null;
-    this.audioContext = null;
-    this.analyser = null;
-    this.animationFrame = null;
   }
 
   /**
@@ -68,9 +65,6 @@ class TTSController {
       this.audio = new Audio(audioUrl);
       this.audio.preload = 'auto';
       
-      // Set up audio context for visualization
-      this.setupAudioContext();
-      
       // Update player when ready
       this.audio.addEventListener('loadedmetadata', () => {
         this.updatePlayerUI();
@@ -83,7 +77,6 @@ class TTSController {
       this.audio.addEventListener('ended', () => {
         this.isPlaying = false;
         this.updatePlayButton();
-        this.stopVisualization();
       });
       
       this.audio.addEventListener('error', (e) => {
@@ -95,7 +88,6 @@ class TTSController {
       await this.audio.play();
       this.isPlaying = true;
       this.updatePlayButton();
-      this.startVisualization();
       
     } catch (error) {
       console.error('TTS error:', error);
@@ -105,23 +97,7 @@ class TTSController {
   }
 
   /**
-   * Setup Web Audio API for visualization
-   */
-  setupAudioContext() {
-    if (!this.audioContext) {
-      this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
-    }
-    
-    const source = this.audioContext.createMediaElementSource(this.audio);
-    this.analyser = this.audioContext.createAnalyser();
-    this.analyser.fftSize = 64;
-    
-    source.connect(this.analyser);
-    this.analyser.connect(this.audioContext.destination);
-  }
-
-  /**
-   * Show audio player UI
+   * Show audio player UI - clean, minimal design
    */
   showPlayer(messageId, loading = false) {
     // Remove existing player
@@ -131,37 +107,44 @@ class TTSController {
     this.playerEl.className = 'tts-player';
     this.playerEl.innerHTML = `
       <div class="tts-player-inner">
+        <button class="tts-btn tts-skip-back" aria-label="Back 15 seconds">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M1 4v6h6"/>
+            <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>
+          </svg>
+          <span class="tts-skip-label">15</span>
+        </button>
+        
         <button class="tts-btn tts-play-btn" aria-label="Play/Pause">
           ${loading ? this.getSpinnerIcon() : this.getPlayIcon()}
         </button>
-        <button class="tts-btn tts-skip-back" aria-label="Back 15s">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>
-            <text x="12" y="15" font-size="8" fill="currentColor" text-anchor="middle">15</text>
+        
+        <button class="tts-btn tts-skip-forward" aria-label="Forward 15 seconds">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M23 4v6h-6"/>
+            <path d="M20.49 15a9 9 0 1 1-2.13-9.36L23 10"/>
           </svg>
+          <span class="tts-skip-label">15</span>
         </button>
-        <div class="tts-waveform">
-          <canvas class="tts-canvas" width="120" height="32"></canvas>
-        </div>
-        <button class="tts-btn tts-skip-forward" aria-label="Forward 15s">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.13-9.36L23 10"/>
-            <text x="12" y="15" font-size="8" fill="currentColor" text-anchor="middle">15</text>
-          </svg>
-        </button>
-        <div class="tts-time">
+        
+        <div class="tts-time-display">
           <span class="tts-current">0:00</span>
           <span class="tts-separator">/</span>
-          <span class="tts-duration">0:00</span>
+          <span class="tts-duration">--:--</span>
         </div>
-        <button class="tts-btn tts-close" aria-label="Close">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        
+        <button class="tts-btn tts-close" aria-label="Stop">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
             <path d="M18 6L6 18M6 6l12 12"/>
           </svg>
         </button>
       </div>
-      <div class="tts-progress-bar">
-        <div class="tts-progress-fill"></div>
+      
+      <div class="tts-progress-container">
+        <div class="tts-progress-bar">
+          <div class="tts-progress-fill"></div>
+          <div class="tts-progress-handle"></div>
+        </div>
       </div>
     `;
     
@@ -170,18 +153,36 @@ class TTSController {
     const skipBackBtn = this.playerEl.querySelector('.tts-skip-back');
     const skipForwardBtn = this.playerEl.querySelector('.tts-skip-forward');
     const closeBtn = this.playerEl.querySelector('.tts-close');
-    const progressBar = this.playerEl.querySelector('.tts-progress-bar');
+    const progressContainer = this.playerEl.querySelector('.tts-progress-container');
     
     playBtn.addEventListener('click', () => this.togglePlay());
     skipBackBtn.addEventListener('click', () => this.skip(-15));
     skipForwardBtn.addEventListener('click', () => this.skip(15));
     closeBtn.addEventListener('click', () => this.stop());
     
-    progressBar.addEventListener('click', (e) => {
-      if (!this.audio) return;
-      const rect = progressBar.getBoundingClientRect();
-      const percent = (e.clientX - rect.left) / rect.width;
+    // Progress bar seeking
+    progressContainer.addEventListener('click', (e) => {
+      if (!this.audio || !this.audio.duration) return;
+      const rect = progressContainer.getBoundingClientRect();
+      const percent = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
       this.audio.currentTime = percent * this.audio.duration;
+    });
+    
+    // Touch/drag support for progress bar
+    let isDragging = false;
+    progressContainer.addEventListener('touchstart', (e) => {
+      isDragging = true;
+      this.handleProgressSeek(e.touches[0], progressContainer);
+    }, { passive: true });
+    
+    progressContainer.addEventListener('touchmove', (e) => {
+      if (isDragging) {
+        this.handleProgressSeek(e.touches[0], progressContainer);
+      }
+    }, { passive: true });
+    
+    progressContainer.addEventListener('touchend', () => {
+      isDragging = false;
     });
     
     // Insert into DOM - inside input-container for proper positioning
@@ -192,14 +193,28 @@ class TTSController {
   }
 
   /**
+   * Handle progress bar seeking
+   */
+  handleProgressSeek(touch, container) {
+    if (!this.audio || !this.audio.duration) return;
+    const rect = container.getBoundingClientRect();
+    const percent = Math.max(0, Math.min(1, (touch.clientX - rect.left) / rect.width));
+    this.audio.currentTime = percent * this.audio.duration;
+  }
+
+  /**
    * Hide audio player
    */
   hidePlayer() {
     if (this.playerEl) {
-      this.playerEl.remove();
-      this.playerEl = null;
+      this.playerEl.classList.add('tts-player-hiding');
+      setTimeout(() => {
+        if (this.playerEl) {
+          this.playerEl.remove();
+          this.playerEl = null;
+        }
+      }, 200);
     }
-    this.stopVisualization();
   }
 
   /**
@@ -211,11 +226,9 @@ class TTSController {
     if (this.isPlaying) {
       this.audio.pause();
       this.isPlaying = false;
-      this.stopVisualization();
     } else {
       this.audio.play();
       this.isPlaying = true;
-      this.startVisualization();
     }
     this.updatePlayButton();
   }
@@ -225,7 +238,7 @@ class TTSController {
    */
   skip(seconds) {
     if (!this.audio) return;
-    this.audio.currentTime = Math.max(0, Math.min(this.audio.duration, this.audio.currentTime + seconds));
+    this.audio.currentTime = Math.max(0, Math.min(this.audio.duration || 0, this.audio.currentTime + seconds));
   }
 
   /**
@@ -240,7 +253,6 @@ class TTSController {
     this.isPlaying = false;
     this.currentMessageId = null;
     this.hidePlayer();
-    this.stopVisualization();
   }
 
   /**
@@ -265,12 +277,12 @@ class TTSController {
     const percent = duration > 0 ? (current / duration) * 100 : 0;
     
     const fill = this.playerEl.querySelector('.tts-progress-fill');
+    const handle = this.playerEl.querySelector('.tts-progress-handle');
     const currentEl = this.playerEl.querySelector('.tts-current');
-    const durationEl = this.playerEl.querySelector('.tts-duration');
     
     if (fill) fill.style.width = `${percent}%`;
+    if (handle) handle.style.left = `${percent}%`;
     if (currentEl) currentEl.textContent = this.formatTime(current);
-    if (durationEl) durationEl.textContent = this.formatTime(duration);
   }
 
   /**
@@ -284,61 +296,10 @@ class TTSController {
       durationEl.textContent = this.formatTime(this.audio.duration);
     }
     
-    // Replace spinner with play button
+    // Replace spinner with play/pause button
     const btn = this.playerEl.querySelector('.tts-play-btn');
     if (btn) {
       btn.innerHTML = this.isPlaying ? this.getPauseIcon() : this.getPlayIcon();
-    }
-  }
-
-  /**
-   * Start waveform visualization
-   */
-  startVisualization() {
-    if (!this.analyser || !this.playerEl) return;
-    
-    const canvas = this.playerEl.querySelector('.tts-canvas');
-    if (!canvas) return;
-    
-    const ctx = canvas.getContext('2d');
-    const bufferLength = this.analyser.frequencyBinCount;
-    const dataArray = new Uint8Array(bufferLength);
-    
-    const draw = () => {
-      if (!this.isPlaying) return;
-      
-      this.animationFrame = requestAnimationFrame(draw);
-      this.analyser.getByteFrequencyData(dataArray);
-      
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-      
-      const barWidth = (canvas.width / bufferLength) * 2;
-      let x = 0;
-      
-      for (let i = 0; i < bufferLength; i++) {
-        const barHeight = (dataArray[i] / 255) * canvas.height;
-        
-        // Gradient from accent to secondary color
-        const gradient = ctx.createLinearGradient(0, canvas.height, 0, 0);
-        gradient.addColorStop(0, 'rgba(45, 90, 140, 0.6)');
-        gradient.addColorStop(1, 'rgba(45, 90, 140, 1)');
-        
-        ctx.fillStyle = gradient;
-        ctx.fillRect(x, canvas.height - barHeight, barWidth - 1, barHeight);
-        x += barWidth;
-      }
-    };
-    
-    draw();
-  }
-
-  /**
-   * Stop visualization
-   */
-  stopVisualization() {
-    if (this.animationFrame) {
-      cancelAnimationFrame(this.animationFrame);
-      this.animationFrame = null;
     }
   }
 
@@ -352,17 +313,22 @@ class TTSController {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   }
 
-  // Icon helpers
+  // Icon helpers - clean, consistent stroke icons
   getPlayIcon() {
-    return `<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>`;
+    return `<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M8 5.14v14l11-7-11-7z"/>
+    </svg>`;
   }
 
   getPauseIcon() {
-    return `<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>`;
+    return `<svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+      <rect x="6" y="4" width="4" height="16" rx="1"/>
+      <rect x="14" y="4" width="4" height="16" rx="1"/>
+    </svg>`;
   }
 
   getSpinnerIcon() {
-    return `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="tts-spinner"><circle cx="12" cy="12" r="10" stroke-dasharray="60" stroke-dashoffset="20"/></svg>`;
+    return `<div class="tts-spinner"></div>`;
   }
 }
 
