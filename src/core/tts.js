@@ -184,10 +184,10 @@ class TTSController {
       this.audio.currentTime = percent * this.audio.duration;
     });
     
-    // Insert into DOM
+    // Insert into DOM - inside input-container for proper positioning
     const inputContainer = document.querySelector('.input-container');
     if (inputContainer) {
-      inputContainer.parentNode.insertBefore(this.playerEl, inputContainer);
+      inputContainer.insertBefore(this.playerEl, inputContainer.firstChild);
     }
   }
 
