@@ -7,7 +7,6 @@ import { state } from '../core/state.js';
 import { storage } from '../core/storage.js';
 import { DEFAULT_SETTINGS } from '../models/settings.js';
 import { $, createElement } from '../utils/dom.js';
-import { lyricMode } from './lyric-mode.js';
 
 export class SettingsUI {
   constructor() {
@@ -273,13 +272,6 @@ export class SettingsUI {
       this.createToggle('sendOnEnter', settings.sendOnEnter !== false)
     ));
 
-    // Echo Lyric Mode
-    this.settingsContent.appendChild(this.createSettingGroup(
-      'Echo Lyric Mode',
-      'Beautiful lyrics-style chat with TTS word highlighting (swipe up for fullscreen)',
-      this.createToggle('lyricMode', settings.lyricMode === true)
-    ));
-
     // Temperature
     this.settingsContent.appendChild(this.createSettingGroup(
       'Temperature',
@@ -377,14 +369,6 @@ export class SettingsUI {
     // Update state
     const settings = await storage.getAllSettings();
     state.setSettings(settings);
-    
-    // Handle special settings
-    if (key === 'lyricMode') {
-      // Sync lyric mode toggle state
-      if (lyricMode.isEnabled() !== value) {
-        lyricMode.toggle();
-      }
-    }
   }
 
   /**
