@@ -124,25 +124,88 @@ class LyricModeController {
         this.toggle();
       }
     });
+
+    // iOS keyboard handling - prevent layout shift
+    this.setupIOSKeyboardHandling();
+  }
+
+  /**
+   * iOS-specific keyboard handling to prevent jank
+   */
+  setupIOSKeyboardHandling() {
+    const messageInput = document.getElementById('message-input');
+    if (!messageInput) return;
+
+    // Detect iOS
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || 
+                  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    
+    if (!isIOS) return;
+
+    // Track keyboard state
+    let keyboardOpen = false;
+
+    // Use visualViewport API for reliable keyboard detection
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', () => {
+        if (!this.enabled) return;
+        
+        const viewportHeight = window.visualViewport.height;
+        const windowHeight = window.innerHeight;
+        
+        // Keyboard is open if viewport is significantly smaller
+        const newKeyboardOpen = viewportHeight < windowHeight * 0.75;
+        
+        if (newKeyboardOpen !== keyboardOpen) {
+          keyboardOpen = newKeyboardOpen;
+          document.body.classList.toggle('keyboard-open', keyboardOpen);
+          
+          // Scroll to bottom when keyboard opens
+          if (keyboardOpen) {
+            this.scrollToBottom();
+          }
+        }
+      });
+    }
+
+    // Auto-focus input after send
+    messageInput.addEventListener('blur', () => {
+      if (!this.enabled) return;
+      
+      // Re-focus after a short delay (allows button clicks to register)
+      setTimeout(() => {
+        if (this.enabled && !this.fullscreen && document.activeElement !== messageInput) {
+          // Don't refocus if user tapped something else intentionally
+        }
+      }, 100);
+    });
   }
 
   handleTouchStart(e) {
     this.touchStartY = e.touches[0].clientY;
+    this.touchStartX = e.touches[0].clientX;
     this.touchStartTime = Date.now();
+    this.touchTarget = e.target.closest('.lyric-verse');
   }
 
   handleTouchEnd(e) {
     const touchEndY = e.changedTouches[0].clientY;
+    const touchEndX = e.changedTouches[0].clientX;
     const deltaY = this.touchStartY - touchEndY;
+    const deltaX = this.touchStartX - touchEndX;
     const deltaTime = Date.now() - this.touchStartTime;
     
-    // Swipe up detection (quick swipe, >100px)
-    if (deltaY > 100 && deltaTime < 300) {
+    // Swipe up detection (quick swipe, >100px vertical, minimal horizontal)
+    if (deltaY > 100 && Math.abs(deltaX) < 50 && deltaTime < 300) {
       this.toggleFullscreen(true);
     }
     // Swipe down to exit fullscreen
-    else if (deltaY < -100 && deltaTime < 300 && this.fullscreen) {
+    else if (deltaY < -100 && Math.abs(deltaX) < 50 && deltaTime < 300 && this.fullscreen) {
       this.toggleFullscreen(false);
+    }
+    // Swipe left on verse to archive
+    else if (deltaX > 80 && Math.abs(deltaY) < 50 && deltaTime < 300 && this.touchTarget) {
+      this.archiveVerse(this.touchTarget);
     }
   }
 
@@ -562,6 +625,50 @@ class LyricModeController {
   }
 
   /**
+   * Archive a verse (swipe left gesture)
+   * Removes from view with animation, stores in archive
+   */
+  async archiveVerse(verseEl) {
+    if (!verseEl) return;
+    
+    const messageId = verseEl.dataset.messageId;
+    if (!messageId) return;
+
+    // Animate out
+    verseEl.style.transition = 'transform 0.3s ease, opacity 0.3s ease';
+    verseEl.style.transform = 'translateX(-100%)';
+    verseEl.style.opacity = '0';
+
+    // Remove after animation
+    setTimeout(() => {
+      verseEl.remove();
+      
+      // Store archive action (lightweight - just mark as archived)
+      this.markAsArchived(messageId);
+    }, 300);
+  }
+
+  /**
+   * Mark message as archived in storage
+   */
+  async markAsArchived(messageId) {
+    try {
+      // Get archived list from storage
+      const archived = JSON.parse(localStorage.getItem('lyric_archived') || '[]');
+      if (!archived.includes(messageId)) {
+        archived.push(messageId);
+        // Keep only last 100 archived IDs to save space
+        if (archived.length > 100) {
+          archived.shift();
+        }
+        localStorage.setItem('lyric_archived', JSON.stringify(archived));
+      }
+    } catch (err) {
+      console.error('Failed to archive:', err);
+    }
+  }
+
+  /**
    * Update a single verse during streaming
    */
   updateVerse(messageId, content) {
@@ -615,7 +722,28 @@ class LyricModeController {
     
     const versesContainer = this.lyricCanvas.querySelector('.lyric-verses');
     if (versesContainer) {
-      versesContainer.scrollTop = versesContainer.scrollHeight;
+      // Use requestAnimationFrame for smooth scrolling
+      requestAnimationFrame(() => {
+        versesContainer.scrollTo({
+          top: versesContainer.scrollHeight,
+          behavior: 'smooth'
+        });
+      });
+    }
+  }
+
+  /**
+   * Focus the message input (call after send)
+   */
+  focusInput() {
+    if (!this.enabled) return;
+    
+    const messageInput = document.getElementById('message-input');
+    if (messageInput && !this.fullscreen) {
+      // Small delay to ensure DOM is ready
+      setTimeout(() => {
+        messageInput.focus();
+      }, 50);
     }
   }
 

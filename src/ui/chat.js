@@ -724,6 +724,11 @@ export class ChatUI {
       this.clearContext();
       this.toggleInputButtons();
 
+      // Re-focus input for lyric mode (prevents iOS jank)
+      if (lyricMode.isEnabled()) {
+        lyricMode.focusInput();
+      }
+
       // Create assistant message (pending)
       const assistantMessage = Message.createAssistantMessage(conversationId);
       

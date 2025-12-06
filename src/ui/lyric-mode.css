@@ -1,17 +1,65 @@
 /**
  * Echo Lyric Mode Styles
  * Apple Music lyrics-inspired chat UI with karaoke word highlighting
+ * 
+ * iOS PWA JANK FIXES:
+ * - Fixed-height verses prevent reflow when keyboard opens
+ * - Proper env() safe area handling
+ * - No dynamic resizing that triggers Safari layout bugs
+ * - Smooth 60fps scrolling with -webkit-overflow-scrolling
  */
+
+/* ========================
+   iOS PWA GLOBAL FIXES
+   ======================== */
+body.lyric-mode-active {
+  /* Prevent iOS rubber-banding causing layout shifts */
+  overscroll-behavior: none;
+  overscroll-behavior-y: contain;
+  /* Smooth touch scrolling */
+  -webkit-overflow-scrolling: touch;
+  /* Prevent double-tap zoom on buttons */
+  touch-action: manipulation;
+  /* Lock the viewport to prevent keyboard resize jank */
+  position: fixed;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Prevent input bar from jumping when keyboard opens */
+body.lyric-mode-active .input-container {
+  position: fixed !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  /* Use env() for safe area - CRITICAL for iPhone notch/home indicator */
+  padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px)) !important;
+  /* Prevent transform/animation that causes jank */
+  transform: none !important;
+  transition: none !important;
+  /* High z-index to stay above everything */
+  z-index: 1000 !important;
+  /* Solid background prevents bleed-through */
+  background: var(--bg-primary, #0a0a0f) !important;
+}
+
+/* iOS keyboard open state - no layout shift */
+body.lyric-mode-active.keyboard-open .input-container {
+  padding-bottom: 12px !important;
+  /* Input stays exactly where it is - keyboard pushes viewport */
+}
 
 /* ========================
    LYRIC CANVAS CONTAINER
    ======================== */
 .lyric-canvas {
-  position: absolute;
+  position: fixed;
   top: 0;
   left: 0;
   right: 0;
-  bottom: 0;
+  /* Account for input bar height + safe area */
+  bottom: calc(80px + env(safe-area-inset-bottom, 0px));
   display: flex;
   flex-direction: column;
   background: linear-gradient(180deg, 
@@ -21,10 +69,19 @@
   );
   overflow: hidden;
   z-index: 5;
+  /* GPU acceleration for smooth scrolling */
+  will-change: transform;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
 }
 
 .lyric-canvas.hidden {
   display: none;
+}
+
+/* Adjust for header */
+body.lyric-mode-active:not(.lyric-fullscreen) .lyric-canvas {
+  top: 56px; /* Header height */
 }
 
 /* ========================
@@ -35,9 +92,17 @@
   overflow-y: auto;
   overflow-x: hidden;
   padding: 24px 20px;
-  padding-bottom: 100px;
-  scroll-behavior: smooth;
+  /* Extra padding at bottom for comfortable scrolling */
+  padding-bottom: 40px;
+  /* iOS smooth scrolling - CRITICAL */
   -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+  /* Prevent momentum scroll from causing jank */
+  overscroll-behavior: contain;
+  /* GPU layer for smooth scroll */
+  will-change: scroll-position;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
 }
 
 .lyric-verses::-webkit-scrollbar {
@@ -96,19 +161,31 @@
 
 /* ========================
    VERSE CARDS
+   iOS-optimized: fixed min-height prevents reflow jank
    ======================== */
 .lyric-verse {
   position: relative;
-  margin-bottom: 24px;
+  margin-bottom: 20px;
   padding: 16px 20px;
   border-radius: 16px;
   max-width: 85%;
-  animation: verseSlideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  /* Fixed min-height prevents layout shift during streaming */
+  min-height: 48px;
+  /* GPU acceleration */
+  will-change: transform, opacity;
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  /* Smooth but not jarring animation */
+  animation: verseSlideIn 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  /* Disable hover transforms on touch devices - prevents jank */
+  transition: box-shadow 0.2s ease;
 }
 
-.lyric-verse:hover {
-  transform: translateY(-2px);
+/* Only enable hover effects on non-touch devices */
+@media (hover: hover) {
+  .lyric-verse:hover {
+    transform: translateY(-2px);
+  }
 }
 
 @keyframes verseSlideIn {
@@ -203,6 +280,18 @@
 @keyframes copiedFlash {
   0%, 100% { background-color: inherit; }
   50% { background-color: rgba(34, 197, 94, 0.3); }
+}
+
+/* Archive swipe hint */
+.lyric-verse {
+  /* Enable swipe */
+  touch-action: pan-y;
+}
+
+.lyric-verse.archiving {
+  transform: translateX(-100%);
+  opacity: 0;
+  transition: transform 0.3s ease, opacity 0.3s ease;
 }
 
 /* ========================
@@ -320,7 +409,16 @@
 
 /* ========================
    FULLSCREEN KARAOKE MODE
+   Optimized for driving - large fonts, no distractions
    ======================== */
+body.lyric-fullscreen {
+  /* Lock everything */
+  position: fixed;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
 body.lyric-fullscreen .chat-header,
 body.lyric-fullscreen .input-container,
 body.lyric-fullscreen .sidebar {
@@ -332,25 +430,36 @@ body.lyric-fullscreen .main {
 }
 
 body.lyric-fullscreen .lyric-canvas {
+  top: 0 !important;
+  bottom: 0 !important;
   border-radius: 0;
+  /* Safe area padding for notch */
+  padding-top: env(safe-area-inset-top, 20px);
+  padding-bottom: env(safe-area-inset-bottom, 20px);
+}
+
+body.lyric-fullscreen .lyric-verses {
+  padding: 40px 24px;
 }
 
 body.lyric-fullscreen .lyric-verse {
-  max-width: 90%;
+  max-width: 92%;
   padding: 24px 28px;
+  margin-bottom: 32px;
 }
 
 body.lyric-fullscreen .lyric-verse.user .lyric-text {
-  font-size: 22px;
+  font-size: 24px;
+  line-height: 1.5;
 }
 
 body.lyric-fullscreen .lyric-verse.assistant .lyric-text {
-  font-size: 26px;
-  line-height: 1.8;
+  font-size: 28px;
+  line-height: 1.7;
 }
 
 body.lyric-fullscreen .lyric-word-active {
-  font-size: 1.1em;
+  font-size: 1.15em;
   text-shadow: 
     0 0 30px rgba(255, 215, 0, 1),
     0 0 60px rgba(255, 215, 0, 0.7),
@@ -361,13 +470,16 @@ body.lyric-fullscreen .lyric-word-active {
 body.lyric-fullscreen .lyric-canvas::after {
   content: 'Swipe down to exit';
   position: fixed;
-  top: 20px;
+  top: env(safe-area-inset-top, 20px);
   left: 50%;
   transform: translateX(-50%);
-  font-size: 12px;
-  color: rgba(255, 255, 255, 0.3);
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.4);
   pointer-events: none;
-  animation: fadeInOut 3s ease forwards;
+  animation: fadeInOut 4s ease forwards;
+  padding: 8px 16px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 20px;
 }
 
 @keyframes fadeInOut {
@@ -404,10 +516,13 @@ body.lyric-fullscreen .lyric-canvas::after {
 
 /* ========================
    MOBILE OPTIMIZATIONS
+   iOS PWA specific fixes
    ======================== */
 @media (max-width: 768px) {
   .lyric-verses {
     padding: 16px 12px;
+    /* Extra bottom padding for comfortable thumb scrolling */
+    padding-bottom: 60px;
   }
   
   .lyric-verse {
@@ -424,22 +539,60 @@ body.lyric-fullscreen .lyric-canvas::after {
     font-size: 17px;
   }
   
+  /* Always show actions on touch devices */
   .lyric-verse-actions {
     opacity: 1;
   }
   
-  /* Fullscreen mode - driving safe */
-  body.lyric-fullscreen .lyric-verse {
-    max-width: 95%;
-    padding: 20px;
+  /* Bigger touch targets for action buttons */
+  .lyric-action-btn {
+    width: 40px;
+    height: 40px;
+    min-width: 44px; /* iOS minimum touch target */
+    min-height: 44px;
+  }
+}
+
+/* ========================
+   iOS SPECIFIC FIXES
+   ======================== */
+@supports (-webkit-touch-callout: none) {
+  /* iOS Safari only */
+  body.lyric-mode-active {
+    /* Prevent iOS bounce scroll */
+    position: fixed;
+    width: 100%;
+    height: 100%;
   }
   
-  body.lyric-fullscreen .lyric-verse.user .lyric-text {
-    font-size: 20px;
+  .lyric-canvas {
+    /* Use dvh for dynamic viewport height on iOS */
+    height: calc(100dvh - 56px - 80px - env(safe-area-inset-bottom, 0px));
+    /* Fallback for older iOS */
+    height: calc(100vh - 56px - 80px - env(safe-area-inset-bottom, 0px));
   }
   
-  body.lyric-fullscreen .lyric-verse.assistant .lyric-text {
-    font-size: 24px;
+  body.lyric-fullscreen .lyric-canvas {
+    height: 100dvh;
+    height: 100vh;
+  }
+  
+  /* Prevent input zoom on iOS */
+  body.lyric-mode-active #message-input {
+    font-size: 16px !important; /* Prevents iOS zoom on focus */
+  }
+}
+
+/* PWA standalone mode */
+@media (display-mode: standalone) {
+  body.lyric-mode-active .lyric-canvas {
+    /* Account for iOS status bar in PWA mode */
+    top: calc(56px + env(safe-area-inset-top, 0px));
+  }
+  
+  body.lyric-fullscreen .lyric-canvas {
+    top: 0;
+    padding-top: env(safe-area-inset-top, 44px);
   }
 }
 
