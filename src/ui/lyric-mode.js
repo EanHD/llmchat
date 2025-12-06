@@ -760,5 +760,42 @@ class LyricModeController {
   }
 }
 
-// Export singleton - doesn't auto-init, must call lyricMode.init() after storage is ready
-export const lyricMode = new LyricModeController();
+// Lazy singleton - only created when first accessed
+let _instance = null;
+
+export const lyricMode = {
+  get instance() {
+    if (!_instance) {
+      _instance = new LyricModeController();
+    }
+    return _instance;
+  },
+  
+  async init() {
+    return this.instance.init();
+  },
+  
+  isEnabled() {
+    return _instance ? _instance.isEnabled() : false;
+  },
+  
+  toggle() {
+    return this.instance.toggle();
+  },
+  
+  applyMode() {
+    return this.instance.applyMode();
+  },
+  
+  updateVerse(messageId, content) {
+    if (_instance) {
+      return _instance.updateVerse(messageId, content);
+    }
+  },
+  
+  focusInput() {
+    if (_instance) {
+      return _instance.focusInput();
+    }
+  }
+};
