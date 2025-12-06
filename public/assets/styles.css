@@ -1487,13 +1487,13 @@ button.primary:active { transform: translateY(0); }
   gap: 6px;
 }
 
-/* Skip buttons with embedded label */
+/* Skip buttons - clean circular style */
 .tts-btn {
   position: relative;
   width: 44px;
   height: 44px;
-  border-radius: 12px;
-  background: rgba(255,255,255,0.06);
+  border-radius: 50%;
+  background: rgba(255,255,255,0.08);
   border: none;
   color: var(--text-secondary);
   display: flex;
@@ -1505,23 +1505,29 @@ button.primary:active { transform: translateY(0); }
 }
 
 .tts-btn:hover {
-  background: rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.15);
   color: #fff;
 }
 
 .tts-btn:active {
-  transform: scale(0.95);
+  transform: scale(0.92);
 }
 
-.tts-skip-label {
-  position: absolute;
-  bottom: 4px;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 9px;
-  font-weight: 600;
-  color: inherit;
-  opacity: 0.8;
+/* Skip back/forward buttons */
+.tts-skip-back,
+.tts-skip-forward {
+  width: 42px;
+  height: 42px;
+}
+
+.tts-skip-back svg,
+.tts-skip-forward svg {
+  opacity: 0.9;
+}
+
+.tts-skip-back:hover svg,
+.tts-skip-forward:hover svg {
+  opacity: 1;
 }
 
 /* Main play/pause button - prominent */
@@ -1531,7 +1537,7 @@ button.primary:active { transform: translateY(0); }
   border-radius: 50%;
   background: var(--accent-primary);
   color: #fff;
-  margin: 0 8px;
+  margin: 0 12px;
 }
 
 .tts-play-btn:hover { 
@@ -1648,23 +1654,24 @@ button.primary:active { transform: translateY(0); }
   .tts-btn { 
     width: 40px; 
     height: 40px;
-    border-radius: 10px;
+  }
+  
+  .tts-skip-back,
+  .tts-skip-forward {
+    width: 38px;
+    height: 38px;
   }
   
   .tts-play-btn { 
-    width: 52px; 
-    height: 52px;
-    margin: 0 6px;
+    width: 50px; 
+    height: 50px;
+    margin: 0 8px;
   }
   
   .tts-time-display { 
     font-size: 12px;
     min-width: 68px;
     padding: 0 4px;
-  }
-  
-  .tts-skip-label {
-    font-size: 8px;
   }
   
   .tts-progress-container {

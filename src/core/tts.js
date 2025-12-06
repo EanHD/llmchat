@@ -120,11 +120,10 @@ class TTSController {
     this.playerEl.innerHTML = `
       <div class="tts-player-inner">
         <button class="tts-btn tts-skip-back" aria-label="Back 15 seconds">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M1 4v6h6"/>
-            <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/>
+            <text x="12" y="14.5" text-anchor="middle" font-size="7" font-weight="700" fill="currentColor">15</text>
           </svg>
-          <span class="tts-skip-label">15</span>
         </button>
         
         <button class="tts-btn tts-play-btn" aria-label="Play/Pause">
@@ -132,11 +131,10 @@ class TTSController {
         </button>
         
         <button class="tts-btn tts-skip-forward" aria-label="Forward 15 seconds">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M23 4v6h-6"/>
-            <path d="M20.49 15a9 9 0 1 1-2.13-9.36L23 10"/>
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M12 5V1l5 5-5 5V7c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6h2c0 4.42-3.58 8-8 8s-8-3.58-8-8 3.58-8 8-8z"/>
+            <text x="12" y="14.5" text-anchor="middle" font-size="7" font-weight="700" fill="currentColor">15</text>
           </svg>
-          <span class="tts-skip-label">15</span>
         </button>
         
         <div class="tts-time-display">
