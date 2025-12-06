@@ -35,7 +35,7 @@ class LyricModeController {
     this.touchStartTime = 0;
     this.lastTapTime = 0;
     
-    this.init();
+    // Don't auto-init - wait for app to call init after DB is ready
   }
 
   async init() {
@@ -43,7 +43,7 @@ class LyricModeController {
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', () => this.setup());
     } else {
-      this.setup();
+      await this.setup();
     }
   }
 
@@ -57,9 +57,14 @@ class LyricModeController {
     // Create lyric canvas
     this.createLyricCanvas();
     
-    // Load saved state
-    const settings = await storage.getAllSettings();
-    this.enabled = settings.lyricMode === true;
+    // Load saved state - storage should be initialized by now
+    try {
+      const settings = await storage.getAllSettings();
+      this.enabled = settings.lyricMode === true;
+    } catch (err) {
+      console.warn('Lyric mode: could not load settings, defaulting to off');
+      this.enabled = false;
+    }
     
     // Setup event listeners
     this.setupEventListeners();

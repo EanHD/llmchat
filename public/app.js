@@ -49,6 +49,9 @@ class App {
       // Initialize personal shortcuts
       await shortcuts.init();
 
+      // Initialize Lyric Mode (after storage is ready)
+      await lyricMode.init();
+
       // Handle URL routing (for /new, /?drunk, etc.)
       this.handleURLRouting();
 
