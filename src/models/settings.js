@@ -14,6 +14,7 @@ export const DEFAULT_SETTINGS = {
   autoScroll: true,
   sendOnEnter: true,
   shakeToClear: true, // Shake device to start new chat
+  lyricMode: false, // Echo Lyric Mode toggle
   temperature: 0.7,
   maxTokens: null, // Use model default
   customMemory: '', // Custom instructions/memory

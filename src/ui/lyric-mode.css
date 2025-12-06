@@ -1,0 +1,535 @@
+/**
+ * Echo Lyric Mode Styles
+ * Apple Music lyrics-inspired chat UI with karaoke word highlighting
+ */
+
+/* ========================
+   LYRIC CANVAS CONTAINER
+   ======================== */
+.lyric-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  flex-direction: column;
+  background: linear-gradient(180deg, 
+    rgba(10, 10, 15, 1) 0%,
+    rgba(15, 15, 25, 1) 50%,
+    rgba(10, 10, 20, 1) 100%
+  );
+  overflow: hidden;
+  z-index: 5;
+}
+
+.lyric-canvas.hidden {
+  display: none;
+}
+
+/* ========================
+   VERSES CONTAINER
+   ======================== */
+.lyric-verses {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 24px 20px;
+  padding-bottom: 100px;
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
+}
+
+.lyric-verses::-webkit-scrollbar {
+  width: 4px;
+}
+
+.lyric-verses::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.lyric-verses::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+}
+
+/* ========================
+   EMPTY STATE
+   ======================== */
+.lyric-empty-state {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+  opacity: 0.6;
+}
+
+.lyric-empty-state.hidden {
+  display: none;
+}
+
+.lyric-logo {
+  font-size: 48px;
+  margin-bottom: 16px;
+  animation: lyricPulse 3s ease-in-out infinite;
+}
+
+.lyric-tagline {
+  font-size: 24px;
+  font-weight: 600;
+  color: #fff;
+  margin: 0 0 8px;
+  letter-spacing: -0.5px;
+}
+
+.lyric-hint {
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.5);
+  margin: 0;
+}
+
+@keyframes lyricPulse {
+  0%, 100% { transform: scale(1); opacity: 0.6; }
+  50% { transform: scale(1.1); opacity: 0.8; }
+}
+
+/* ========================
+   VERSE CARDS
+   ======================== */
+.lyric-verse {
+  position: relative;
+  margin-bottom: 24px;
+  padding: 16px 20px;
+  border-radius: 16px;
+  max-width: 85%;
+  animation: verseSlideIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.lyric-verse:hover {
+  transform: translateY(-2px);
+}
+
+@keyframes verseSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* User verses - left aligned, blue gradient */
+.lyric-verse.user {
+  margin-right: auto;
+  background: linear-gradient(135deg, 
+    rgba(59, 130, 246, 0.3) 0%,
+    rgba(37, 99, 235, 0.2) 100%
+  );
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  box-shadow: 
+    0 4px 20px rgba(59, 130, 246, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+}
+
+.lyric-verse.user .lyric-text {
+  font-weight: 600;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
+  color: #fff;
+  font-size: 17px;
+  line-height: 1.6;
+}
+
+/* AI verses - right aligned, dark gradient */
+.lyric-verse.assistant {
+  margin-left: auto;
+  background: linear-gradient(135deg, 
+    rgba(30, 30, 40, 0.9) 0%,
+    rgba(20, 20, 30, 0.95) 100%
+  );
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 
+    0 4px 20px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.lyric-verse.assistant .lyric-text {
+  font-family: 'Georgia', 'Times New Roman', serif;
+  font-style: italic;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 18px;
+  line-height: 1.7;
+  letter-spacing: 0.2px;
+}
+
+/* Streaming verse animation */
+.lyric-verse.streaming {
+  animation: versePulse 2s ease-in-out infinite;
+}
+
+@keyframes versePulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+.lyric-thinking {
+  color: rgba(255, 215, 0, 0.8);
+  font-style: normal;
+  animation: thinkingGlow 1.5s ease-in-out infinite;
+}
+
+@keyframes thinkingGlow {
+  0%, 100% { text-shadow: 0 0 10px rgba(255, 215, 0, 0.3); }
+  50% { text-shadow: 0 0 20px rgba(255, 215, 0, 0.6); }
+}
+
+/* Speaking verse highlight */
+.lyric-verse.speaking {
+  box-shadow: 
+    0 0 30px rgba(255, 215, 0, 0.3),
+    0 4px 20px rgba(0, 0, 0, 0.3);
+  border-color: rgba(255, 215, 0, 0.4);
+}
+
+/* Copied feedback */
+.lyric-verse.copied {
+  animation: copiedFlash 0.3s ease;
+}
+
+@keyframes copiedFlash {
+  0%, 100% { background-color: inherit; }
+  50% { background-color: rgba(34, 197, 94, 0.3); }
+}
+
+/* ========================
+   WORD HIGHLIGHTING
+   ======================== */
+.lyric-word {
+  display: inline;
+  transition: all 0.15s ease;
+  border-radius: 3px;
+  padding: 0 2px;
+  margin: 0 -2px;
+}
+
+.lyric-word-active {
+  color: #ffd700 !important;
+  text-shadow: 
+    0 0 20px rgba(255, 215, 0, 0.8),
+    0 0 40px rgba(255, 215, 0, 0.5),
+    0 0 60px rgba(255, 215, 0, 0.3);
+  transform: scale(1.05);
+  background: rgba(255, 215, 0, 0.1);
+}
+
+/* ========================
+   VERSE ACTIONS
+   ======================== */
+.lyric-verse-actions {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.lyric-verse:hover .lyric-verse-actions,
+.lyric-verse.speaking .lyric-verse-actions {
+  opacity: 1;
+}
+
+.lyric-action-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: rgba(255, 255, 255, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.lyric-action-btn:hover {
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+}
+
+.lyric-action-btn:active {
+  transform: scale(0.95);
+}
+
+/* ========================
+   ATTACHMENTS IN VERSES
+   ======================== */
+.lyric-attachments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.lyric-attachment-img {
+  max-width: 200px;
+  max-height: 150px;
+  border-radius: 8px;
+  object-fit: cover;
+}
+
+.lyric-attachment-file {
+  padding: 8px 12px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 8px;
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* ========================
+   CODE BLOCKS IN VERSES
+   ======================== */
+.lyric-verse pre {
+  background: rgba(0, 0, 0, 0.4);
+  border-radius: 8px;
+  padding: 12px;
+  margin: 12px 0;
+  overflow-x: auto;
+}
+
+.lyric-verse pre code {
+  font-family: 'SF Mono', 'Fira Code', 'Monaco', monospace;
+  font-size: 13px;
+  font-style: normal;
+  color: #e2e8f0;
+}
+
+.lyric-verse code:not(pre code) {
+  background: rgba(255, 255, 255, 0.1);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.9em;
+  font-style: normal;
+}
+
+/* ========================
+   FULLSCREEN KARAOKE MODE
+   ======================== */
+body.lyric-fullscreen .chat-header,
+body.lyric-fullscreen .input-container,
+body.lyric-fullscreen .sidebar {
+  display: none !important;
+}
+
+body.lyric-fullscreen .main {
+  padding: 0;
+}
+
+body.lyric-fullscreen .lyric-canvas {
+  border-radius: 0;
+}
+
+body.lyric-fullscreen .lyric-verse {
+  max-width: 90%;
+  padding: 24px 28px;
+}
+
+body.lyric-fullscreen .lyric-verse.user .lyric-text {
+  font-size: 22px;
+}
+
+body.lyric-fullscreen .lyric-verse.assistant .lyric-text {
+  font-size: 26px;
+  line-height: 1.8;
+}
+
+body.lyric-fullscreen .lyric-word-active {
+  font-size: 1.1em;
+  text-shadow: 
+    0 0 30px rgba(255, 215, 0, 1),
+    0 0 60px rgba(255, 215, 0, 0.7),
+    0 0 90px rgba(255, 215, 0, 0.4);
+}
+
+/* Exit fullscreen hint */
+body.lyric-fullscreen .lyric-canvas::after {
+  content: 'Swipe down to exit';
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.3);
+  pointer-events: none;
+  animation: fadeInOut 3s ease forwards;
+}
+
+@keyframes fadeInOut {
+  0% { opacity: 0; }
+  20% { opacity: 1; }
+  80% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* ========================
+   TOGGLE BUTTON STYLES
+   ======================== */
+#lyric-mode-toggle {
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+#lyric-mode-toggle.active {
+  color: #ffd700;
+  background: rgba(255, 215, 0, 0.15);
+}
+
+#lyric-mode-toggle.active::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 4px;
+  height: 4px;
+  background: #ffd700;
+  border-radius: 50%;
+}
+
+/* ========================
+   MOBILE OPTIMIZATIONS
+   ======================== */
+@media (max-width: 768px) {
+  .lyric-verses {
+    padding: 16px 12px;
+  }
+  
+  .lyric-verse {
+    max-width: 92%;
+    padding: 14px 16px;
+    margin-bottom: 16px;
+  }
+  
+  .lyric-verse.user .lyric-text {
+    font-size: 16px;
+  }
+  
+  .lyric-verse.assistant .lyric-text {
+    font-size: 17px;
+  }
+  
+  .lyric-verse-actions {
+    opacity: 1;
+  }
+  
+  /* Fullscreen mode - driving safe */
+  body.lyric-fullscreen .lyric-verse {
+    max-width: 95%;
+    padding: 20px;
+  }
+  
+  body.lyric-fullscreen .lyric-verse.user .lyric-text {
+    font-size: 20px;
+  }
+  
+  body.lyric-fullscreen .lyric-verse.assistant .lyric-text {
+    font-size: 24px;
+  }
+}
+
+/* ========================
+   DARK MODE ADJUSTMENTS
+   ======================== */
+@media (prefers-color-scheme: light) {
+  body:not(.dark) .lyric-canvas {
+    background: linear-gradient(180deg, 
+      rgba(250, 250, 255, 1) 0%,
+      rgba(245, 245, 250, 1) 50%,
+      rgba(240, 240, 248, 1) 100%
+    );
+  }
+  
+  body:not(.dark) .lyric-verse.user {
+    background: linear-gradient(135deg, 
+      rgba(59, 130, 246, 0.15) 0%,
+      rgba(37, 99, 235, 0.1) 100%
+    );
+    border-color: rgba(59, 130, 246, 0.2);
+  }
+  
+  body:not(.dark) .lyric-verse.user .lyric-text {
+    color: #1e3a5f;
+  }
+  
+  body:not(.dark) .lyric-verse.assistant {
+    background: linear-gradient(135deg, 
+      rgba(255, 255, 255, 0.9) 0%,
+      rgba(248, 248, 252, 0.95) 100%
+    );
+    border-color: rgba(0, 0, 0, 0.08);
+  }
+  
+  body:not(.dark) .lyric-verse.assistant .lyric-text {
+    color: #1a1a2e;
+  }
+  
+  body:not(.dark) .lyric-word-active {
+    color: #b8860b !important;
+    text-shadow: 
+      0 0 15px rgba(184, 134, 11, 0.6),
+      0 0 30px rgba(184, 134, 11, 0.3);
+    background: rgba(255, 215, 0, 0.15);
+  }
+  
+  body:not(.dark) .lyric-empty-state {
+    opacity: 0.5;
+  }
+  
+  body:not(.dark) .lyric-tagline {
+    color: #1a1a2e;
+  }
+}
+
+/* ========================
+   REDUCED MOTION
+   ======================== */
+@media (prefers-reduced-motion: reduce) {
+  .lyric-verse,
+  .lyric-word,
+  .lyric-word-active {
+    animation: none;
+    transition: none;
+  }
+  
+  .lyric-verses {
+    scroll-behavior: auto;
+  }
+}
+
+/* ========================
+   PARALLAX EFFECT
+   ======================== */
+.lyric-verse {
+  will-change: transform;
+}
+
+.lyric-verses {
+  perspective: 1000px;
+}
+
+/* Subtle depth on scroll - handled via JS for performance */
+.lyric-verse[data-depth="far"] {
+  opacity: 0.7;
+  transform: scale(0.95);
+}
+
+.lyric-verse[data-depth="near"] {
+  opacity: 1;
+  transform: scale(1);
+}

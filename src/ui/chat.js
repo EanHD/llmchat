@@ -16,6 +16,7 @@ import { shortcuts } from '../core/shortcuts.js';
 import { agentMode } from '../agent/agent-mode.js';
 import { attachments, FileCategories } from '../core/attachments.js';
 import { tts } from '../core/tts.js';
+import { lyricMode } from './lyric-mode.js';
 
 export class ChatUI {
   constructor() {
@@ -1205,6 +1206,11 @@ export class ChatUI {
    * Update message in place (for streaming)
    */
   async updateMessageContent(messageId, content) {
+    // Also update lyric mode if enabled
+    if (lyricMode.isEnabled()) {
+      lyricMode.updateVerse(messageId, content);
+    }
+
     const messageEl = this.messagesContainer.querySelector(`[data-message-id="${messageId}"]`);
     if (!messageEl) return;
 

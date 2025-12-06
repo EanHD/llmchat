@@ -15,6 +15,7 @@ import { DEFAULT_SETTINGS } from './src/models/settings.js';
 import { shortcuts } from './src/core/shortcuts.js';
 import { agentMode } from './src/agent/agent-mode.js';
 import { iosViewport } from './src/core/ios-viewport.js';
+import { lyricMode } from './src/ui/lyric-mode.js';
 
 const APP_VERSION = '2.0.0';
 
@@ -181,6 +182,8 @@ class App {
     if (toggleBtn) {
       toggleBtn.addEventListener('click', () => {
         agentMode.toggle();
+        // Re-apply lyric mode state when agent mode changes
+        lyricMode.applyMode();
       });
     }
   }
