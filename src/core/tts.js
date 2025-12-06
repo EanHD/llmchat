@@ -9,6 +9,7 @@ class TTSController {
   constructor() {
     this.audio = null;
     this.isPlaying = false;
+    this.isSpeaking = false; // Prevents overlapping requests
     this.currentMessageId = null;
     this.playerEl = null;
     this.progressInterval = null;
@@ -48,9 +49,17 @@ class TTSController {
    * Speak text with audio player UI
    */
   async speak(text, messageId) {
-    // Stop any current playback
-    this.stop();
+    // Prevent overlapping TTS requests
+    if (this.isSpeaking) {
+      this.stop();
+      // Small delay to ensure cleanup
+      await new Promise(r => setTimeout(r, 50));
+    }
     
+    // Stop any current playback immediately
+    this.stopImmediate();
+    
+    this.isSpeaking = true;
     this.currentMessageId = messageId;
     
     try {
@@ -76,11 +85,13 @@ class TTSController {
       
       this.audio.addEventListener('ended', () => {
         this.isPlaying = false;
+        this.isSpeaking = false;
         this.updatePlayButton();
       });
       
       this.audio.addEventListener('error', (e) => {
         console.error('Audio playback error:', e);
+        this.isSpeaking = false;
         this.hidePlayer();
       });
       
@@ -91,6 +102,7 @@ class TTSController {
       
     } catch (error) {
       console.error('TTS error:', error);
+      this.isSpeaking = false;
       this.hidePlayer();
       throw error;
     }
@@ -242,7 +254,24 @@ class TTSController {
   }
 
   /**
-   * Stop playback and cleanup
+   * Stop playback immediately (no animation)
+   */
+  stopImmediate() {
+    if (this.audio) {
+      this.audio.pause();
+      this.audio.src = '';
+      this.audio = null;
+    }
+    this.isPlaying = false;
+    // Remove player element immediately
+    if (this.playerEl) {
+      this.playerEl.remove();
+      this.playerEl = null;
+    }
+  }
+
+  /**
+   * Stop playback and cleanup (with animation)
    */
   stop() {
     if (this.audio) {
@@ -251,6 +280,7 @@ class TTSController {
       this.audio = null;
     }
     this.isPlaying = false;
+    this.isSpeaking = false;
     this.currentMessageId = null;
     this.hidePlayer();
   }
