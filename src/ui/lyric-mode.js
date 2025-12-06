@@ -760,5 +760,5 @@ class LyricModeController {
   }
 }
 
-// Export singleton
+// Export singleton - doesn't auto-init, must call lyricMode.init() after storage is ready
 export const lyricMode = new LyricModeController();
