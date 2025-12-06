@@ -1196,7 +1196,8 @@ pre code { background: transparent; padding: 0; }
 
 .panel-header {
   padding: 20px 20px 16px 20px;
-  padding-top: calc(20px + var(--safe-top));
+  /* Extra padding for Dynamic Island - safe-area + additional buffer */
+  padding-top: calc(24px + var(--safe-top));
   border-bottom: 1px solid rgba(255,255,255,0.06);
   display: flex;
   align-items: center;
@@ -1205,6 +1206,8 @@ pre code { background: transparent; padding: 0; }
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   flex-shrink: 0;
+  /* Minimum height to clear Dynamic Island */
+  min-height: 60px;
 }
 .panel-header h2 {
   font-size: 20px;
@@ -1391,7 +1394,11 @@ button.primary:active { transform: translateY(0); }
     max-width: 100%;
     border-left: none;
   }
-  .panel-header { padding: 20px 16px 14px 16px; }
+  /* Preserve safe area padding on mobile */
+  .panel-header { 
+    padding: 20px 16px 14px 16px;
+    padding-top: calc(24px + var(--safe-top));
+  }
   .panel-content { padding: 20px 16px; }
 }
 
@@ -1690,12 +1697,20 @@ button.primary:active { transform: translateY(0); }
     background: #000;
   }
   
+  /* Chat header with Dynamic Island clearance */
   .chat-header {
     padding-top: var(--safe-top);
+    min-height: calc(56px + var(--safe-top));
   }
   
   .sidebar {
     height: 100%;
+  }
+  
+  /* Panels need extra top padding for Dynamic Island */
+  .panel-header {
+    padding-top: calc(28px + var(--safe-top));
+    min-height: calc(60px + var(--safe-top));
   }
   
   /* Critical: Fill the bottom safe area with app background color */
