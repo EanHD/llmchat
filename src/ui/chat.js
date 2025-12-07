@@ -17,6 +17,7 @@ import { agentMode } from '../agent/agent-mode.js';
 import { attachments, FileCategories } from '../core/attachments.js';
 import { tts } from '../core/tts.js';
 import { stt } from '../core/stt.js';
+import { voiceMode } from '../core/voice-mode.js';
 
 export class ChatUI {
   constructor() {
@@ -865,6 +866,9 @@ export class ChatUI {
 
     await storage.saveMessage(assistantMessage.toJSON());
     state.updateMessage(assistantMessage.id, assistantMessage.toJSON());
+    
+    // Voice mode: auto-play TTS if enabled
+    await voiceMode.handleNewResponse(assistantMessage.id, responseContent, this);
   }
 
   /**
@@ -1054,6 +1058,11 @@ export class ChatUI {
       const currentConversationId = state.getState('currentConversationId');
       if (currentConversationId === originalConversationId) {
         state.updateMessage(assistantMessage.id, assistantMessage.toJSON());
+      }
+      
+      // Voice mode: auto-play TTS if enabled
+      if (currentConversationId === originalConversationId) {
+        await voiceMode.handleNewResponse(assistantMessage.id, assistantMessage.content, this);
       }
 
     } catch (error) {

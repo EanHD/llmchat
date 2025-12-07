@@ -7,6 +7,7 @@ import { state } from '../core/state.js';
 import { storage } from '../core/storage.js';
 import { DEFAULT_SETTINGS } from '../models/settings.js';
 import { $, createElement } from '../utils/dom.js';
+import { voiceMode } from '../core/voice-mode.js';
 
 export class SettingsUI {
   constructor() {
@@ -301,6 +302,16 @@ export class SettingsUI {
     }, 'Reset to Defaults');
 
     this.settingsContent.appendChild(resetBtn);
+    
+    // Voice Mode Settings
+    await voiceMode.init();
+    const voiceModeHTML = voiceMode.createSettingsUI();
+    const voiceModeDiv = createElement('div');
+    voiceModeDiv.innerHTML = voiceModeHTML;
+    this.settingsContent.appendChild(voiceModeDiv);
+    
+    // Setup voice mode listeners
+    voiceMode.setupSettingsListeners();
     
     // Logout button
     const logoutBtn = createElement('button', {

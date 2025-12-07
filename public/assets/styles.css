@@ -2058,3 +2058,27 @@ body.is-ios.keyboard-open .chat-container {
   .reading-mode-content h2 { font-size: 32px; }
   .reading-mode-content h3 { font-size: 28px; }
 }
+
+/* ========================
+   VOICE MODE
+   ======================== */
+.voice-mode-minimal #sidebar {
+  transform: translateX(-100%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.voice-mode-minimal #chat-container {
+  margin-left: 0;
+}
+
+.voice-mode-active {
+  /* Simplified chat interface for voice mode */
+  transition: margin-left 0.3s ease;
+}
+
+@media (max-width: 768px) {
+  .voice-mode-minimal #sidebar {
+    display: none;
+  }
+}
