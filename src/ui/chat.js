@@ -16,6 +16,7 @@ import { shortcuts } from '../core/shortcuts.js';
 import { agentMode } from '../agent/agent-mode.js';
 import { attachments, FileCategories } from '../core/attachments.js';
 import { tts } from '../core/tts.js';
+import { stt } from '../core/stt.js';
 
 export class ChatUI {
   constructor() {
@@ -1342,11 +1343,6 @@ export class ChatUI {
   }
 
   toggleVoiceInput() {
-    if (!('webkitSpeechRecognition' in window) && !('SpeechRecognition' in window)) {
-      this.showToast('Speech recognition not supported');
-      return;
-    }
-
     if (this.isListening) {
       this.stopListening();
     } else {
@@ -1354,209 +1350,44 @@ export class ChatUI {
     }
   }
 
-  
+  async startListening() {
+    try {
+      // Setup STT callbacks
+      stt.onResult = (text) => {
+        this.messageInput.value = text;
+        this.adjustTextareaHeight();
+        this.toggleInputButtons();
+      };
 
+      stt.onError = (error) => {
+        console.error('STT error:', error);
+        this.showToast('Voice input failed');
+        this.stopListening();
+      };
 
-
-  startListening() {
-    if (this.recognition) {
-      this.recognition.onend = null;
-      this.recognition.stop();
-    }
-
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    this.recognition = new SpeechRecognition();
-    this.recognition.continuous = true; // Keep listening for long speech
-    this.recognition.interimResults = true;
-    this.recognition.lang = 'en-US';
-    this.recognition.maxAlternatives = 3; // Get alternatives for better accuracy
-
-    this.isManualStop = false;
-    this.lastInterimResult = '';
-    this.silenceTimeout = null;
-    
-    // Add phrase hints if supported (Chrome 90+)
-    // These boost recognition of specific words
-    if ('SpeechRecognitionPhrase' in window && this.recognition.phrases !== undefined) {
-      try {
-        const phraseHints = [
-          // App name
-          { phrase: 'Kai', boost: 5.0 },
-          { phrase: 'chi', boost: -2.0 }, // Downboost misheard version
-          // Tech companies/terms commonly misheard
-          { phrase: 'Vercel', boost: 4.0 },
-          { phrase: 'Next.js', boost: 4.0 },
-          { phrase: 'React', boost: 3.0 },
-          { phrase: 'JavaScript', boost: 3.0 },
-          { phrase: 'TypeScript', boost: 3.0 },
-          { phrase: 'GitHub', boost: 3.0 },
-          { phrase: 'API', boost: 3.0 },
-          { phrase: 'Claude', boost: 4.0 },
-          { phrase: 'GPT', boost: 3.0 },
-          { phrase: 'OpenAI', boost: 3.0 },
-          { phrase: 'Anthropic', boost: 3.0 },
-          // Filler words to capture
-          { phrase: 'um', boost: 2.0 },
-          { phrase: 'uh', boost: 2.0 },
-          { phrase: 'like', boost: 1.5 },
-          { phrase: 'you know', boost: 2.0 },
-        ];
-        
-        const phraseObjects = phraseHints.map(p => 
-          new SpeechRecognitionPhrase(p.phrase, p.boost)
-        );
-        this.recognition.phrases = phraseObjects;
-      } catch (e) {
-        // Phrase hints not supported, continue without
-        console.log('Speech phrase hints not supported');
-      }
-    }
-
-    this.recognition.onstart = () => {
+      // Start recording
+      await stt.startRecording();
+      
       this.isListening = true;
       this.micBtn.classList.add('listening');
       this.micBtn.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="6" width="12" height="12" rx="2" fill="currentColor"/></svg>';
       this.toggleInputButtons();
-    };
 
-    this.recognition.onend = () => {
-      // Clear silence timeout
-      if (this.silenceTimeout) {
-        clearTimeout(this.silenceTimeout);
-        this.silenceTimeout = null;
-      }
-      
-      this.isListening = false;
-      this.micBtn.classList.remove('listening');
-      this.micBtn.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>';
-
-      if (this.lastInterimResult && !this.isManualStop) {
-         this.appendToInput(this.lastInterimResult);
-         this.lastInterimResult = '';
-      }
-      this.toggleInputButtons();
-    };
-
-    this.recognition.onresult = (event) => {
-      // Reset silence timeout on any result
-      if (this.silenceTimeout) {
-        clearTimeout(this.silenceTimeout);
-      }
-      
-      let finalTranscript = '';
-      let interimTranscript = '';
-
-      for (let i = event.resultIndex; i < event.results.length; ++i) {
-        const result = event.results[i];
-        if (result.isFinal) {
-          // Use highest confidence alternative
-          let bestTranscript = result[0].transcript;
-          let bestConfidence = result[0].confidence;
-          
-          for (let j = 1; j < result.length; j++) {
-            if (result[j].confidence > bestConfidence) {
-              bestTranscript = result[j].transcript;
-              bestConfidence = result[j].confidence;
-            }
-          }
-          
-          // Post-process common misrecognitions
-          bestTranscript = this.postProcessTranscript(bestTranscript);
-          finalTranscript += bestTranscript;
-        } else {
-          interimTranscript += result[0].transcript;
-        }
-      }
-
-      this.lastInterimResult = interimTranscript;
-
-      if (finalTranscript) {
-        this.appendToInput(finalTranscript);
-        this.lastInterimResult = '';
-      }
-      
-      // Auto-stop after 2 seconds of silence (for continuous mode)
-      this.silenceTimeout = setTimeout(() => {
-        if (this.isListening && !this.isManualStop) {
-          this.stopListening();
-        }
-      }, 2000);
-    };
-    
-    this.recognition.onerror = (event) => {
-      console.error('Speech recognition error', event.error);
-      if (event.error === 'no-speech') return;
-
-      this.stopListening();
-      
-      if (event.error === 'not-allowed') {
-          this.showToast('Microphone access denied');
-      }
-    };
-
-    try {
-      this.recognition.start();
-    } catch (e) {
-      console.error('Failed to start recognition:', e);
+    } catch (error) {
+      console.error('Failed to start listening:', error);
+      this.showToast('Microphone access denied');
     }
-  }
-
-  /**
-   * Post-process transcript to fix common misrecognitions
-   */
-  postProcessTranscript(text) {
-    const replacements = [
-      // App name
-      [/\bchi\b/gi, 'Kai'],
-      [/\bky\b/gi, 'Kai'],
-      [/\bchai\b/gi, 'Kai'],
-      // Tech terms
-      [/\bbird ?cell\b/gi, 'Vercel'],
-      [/\bverse ?l\b/gi, 'Vercel'],
-      [/\bversa?l\b/gi, 'Vercel'],
-      [/\bnext ?js\b/gi, 'Next.js'],
-      [/\breact ?js\b/gi, 'React'],
-      [/\btype ?script\b/gi, 'TypeScript'],
-      [/\bjava ?script\b/gi, 'JavaScript'],
-      [/\bget ?hub\b/gi, 'GitHub'],
-      [/\bgit ?hub\b/gi, 'GitHub'],
-      [/\bopen ?ai\b/gi, 'OpenAI'],
-      [/\bgpt\b/gi, 'GPT'],
-      [/\bcloud\b/gi, 'Claude'], // Often misheard
-      [/\banthropic\b/gi, 'Anthropic'],
-      // Common programming terms
-      [/\ba p i\b/gi, 'API'],
-      [/\bu r l\b/gi, 'URL'],
-      [/\bhtml\b/gi, 'HTML'],
-      [/\bcss\b/gi, 'CSS'],
-    ];
-    
-    let result = text;
-    for (const [pattern, replacement] of replacements) {
-      result = result.replace(pattern, replacement);
-    }
-    
-    return result;
-  }
-
-  appendToInput(text) {
-    if (!text) return;
-    const currentVal = this.messageInput.value;
-    const prefix = (currentVal && !currentVal.endsWith(' ') && !currentVal.endsWith('\n')) ? ' ' : '';
-    this.messageInput.value = currentVal + prefix + text;
-    this.adjustTextareaHeight();
-    this.toggleInputButtons();
-    this.messageInput.scrollTop = this.messageInput.scrollHeight;
   }
 
   stopListening() {
-    this.isManualStop = true;
-    if (this.silenceTimeout) {
-      clearTimeout(this.silenceTimeout);
-      this.silenceTimeout = null;
+    if (stt.isActive()) {
+      stt.stopRecording();
     }
-    if (this.recognition) {
-      this.recognition.stop();
-    }
+    
+    this.isListening = false;
+    this.micBtn.classList.remove('listening');
+    this.micBtn.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>';
+    this.toggleInputButtons();
   }
+
 }
