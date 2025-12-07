@@ -18,7 +18,7 @@ class TTSController {
   /**
    * Get TTS audio from backend
    */
-  async getAudio(text, voice = 'aoede') {
+  async getAudio(text, voice = 'felicia') {
     const settings = await storage.getAllSettings();
     const apiUrl = settings.apiUrl || 'https://api.eanhd.com';
     const customHeaders = settings.customHeaders || {};
