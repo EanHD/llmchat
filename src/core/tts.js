@@ -4,10 +4,12 @@
  */
 
 import { storage } from './storage.js';
+import { readingMode } from '../ui/reading-mode.js';
 
 class TTSController {
   constructor() {
     this.audio = null;
+    this.currentText = ''; // Store text for reading mode
     this.isPlaying = false;
     this.isSpeaking = false; // Prevents overlapping requests
     this.currentMessageId = null;
@@ -61,6 +63,7 @@ class TTSController {
     
     this.isSpeaking = true;
     this.currentMessageId = messageId;
+    this.currentText = text; // Store for reading mode
     
     try {
       // Show loading state
@@ -119,6 +122,13 @@ class TTSController {
     this.playerEl.className = 'tts-player';
     this.playerEl.innerHTML = `
       <div class="tts-player-inner">
+        <button class="tts-btn tts-reading-mode" aria-label="Reading Mode" title="Read while listening">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+            <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+          </svg>
+        </button>
+        
         <button class="tts-btn tts-skip-back" aria-label="Back 15 seconds">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M2.5 2v6h6M2.66 15.57a10 10 0 1 0 .57-8.38"/>
@@ -163,12 +173,14 @@ class TTSController {
     const skipBackBtn = this.playerEl.querySelector('.tts-skip-back');
     const skipForwardBtn = this.playerEl.querySelector('.tts-skip-forward');
     const closeBtn = this.playerEl.querySelector('.tts-close');
+    const readingBtn = this.playerEl.querySelector('.tts-reading-mode');
     const progressContainer = this.playerEl.querySelector('.tts-progress-container');
     
     playBtn.addEventListener('click', () => this.togglePlay());
     skipBackBtn.addEventListener('click', () => this.skip(-15));
     skipForwardBtn.addEventListener('click', () => this.skip(15));
     closeBtn.addEventListener('click', () => this.stop());
+    readingBtn.addEventListener('click', () => this.openReadingMode());
     
     // Progress bar seeking
     progressContainer.addEventListener('click', (e) => {
@@ -280,7 +292,13 @@ class TTSController {
     this.isPlaying = false;
     this.isSpeaking = false;
     this.currentMessageId = null;
+    this.currentText = '';
     this.hidePlayer();
+    
+    // Close reading mode
+    if (readingMode.isActive) {
+      readingMode.hide();
+    }
   }
 
   /**
@@ -311,6 +329,21 @@ class TTSController {
     if (fill) fill.style.width = `${percent}%`;
     if (handle) handle.style.left = `${percent}%`;
     if (currentEl) currentEl.textContent = this.formatTime(current);
+    
+    // Update reading mode scroll
+    if (readingMode.isActive) {
+      readingMode.updateProgress(current, duration);
+    }
+  }
+
+  /**
+   * Open reading mode
+   */
+  openReadingMode() {
+    if (!this.currentText || !this.audio) return;
+    
+    const duration = this.audio.duration || 0;
+    readingMode.show(this.currentText, this.currentMessageId, duration);
   }
 
   /**
