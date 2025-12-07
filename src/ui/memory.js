@@ -6,6 +6,7 @@
 import { storage } from '../core/storage.js';
 import { state } from '../core/state.js';
 import { $ } from '../utils/dom.js';
+import { memoryVault } from './memory-vault.js';
 
 export class MemoryUI {
   constructor() {
@@ -23,9 +24,9 @@ export class MemoryUI {
   async init() {
     if (!this.memoryBtn || !this.memoryPanel) return;
     
-    // Toggle memory panel
-    this.memoryBtn.addEventListener('click', () => {
-      this.show();
+    // Toggle memory panel - now opens Memory Vault
+    this.memoryBtn.addEventListener('click', async () => {
+      await memoryVault.init();
     });
     
     this.closeMemoryBtn.addEventListener('click', () => {
