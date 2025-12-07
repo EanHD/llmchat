@@ -18,7 +18,7 @@ class TTSController {
   /**
    * Get TTS audio from backend
    */
-  async getAudio(text, voice = 'felicia') {
+  async getAudio(text, voice = 'nova') {
     const settings = await storage.getAllSettings();
     const apiUrl = settings.apiUrl || 'https://api.eanhd.com';
     const customHeaders = settings.customHeaders || {};
@@ -120,9 +120,9 @@ class TTSController {
     this.playerEl.innerHTML = `
       <div class="tts-player-inner">
         <button class="tts-btn tts-skip-back" aria-label="Back 15 seconds">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/>
-            <text x="12" y="14.5" text-anchor="middle" font-size="7" font-weight="700" fill="currentColor">15</text>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M2.5 2v6h6M2.66 15.57a10 10 0 1 0 .57-8.38"/>
+            <text x="12" y="16" text-anchor="middle" font-size="8" font-weight="600" fill="currentColor">15</text>
           </svg>
         </button>
         
@@ -131,9 +131,9 @@ class TTSController {
         </button>
         
         <button class="tts-btn tts-skip-forward" aria-label="Forward 15 seconds">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M12 5V1l5 5-5 5V7c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6h2c0 4.42-3.58 8-8 8s-8-3.58-8-8 3.58-8 8-8z"/>
-            <text x="12" y="14.5" text-anchor="middle" font-size="7" font-weight="700" fill="currentColor">15</text>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38"/>
+            <text x="12" y="16" text-anchor="middle" font-size="8" font-weight="600" fill="currentColor">15</text>
           </svg>
         </button>
         

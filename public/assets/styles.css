@@ -934,7 +934,7 @@ body.keyboard-open .input-container {
 .scroll-to-bottom-btn {
   position: absolute;
   right: 20px;
-  bottom: 100px;
+  bottom: 120px; /* Moved up to clear input bar */
   width: 40px;
   height: 40px;
   border-radius: 50%;
@@ -955,19 +955,8 @@ body.keyboard-open .input-container {
 }
 
 .fab-new-chat {
-  position: absolute;
-  right: 20px;
-  bottom: 150px;
-  width: 56px; 
-  height: 56px;
-  border-radius: 50%;
-  background: var(--accent-primary);
-  color: #fff;
-  display: flex; 
-  align-items: center; 
-  justify-content: center;
-  box-shadow: 0 4px 12px rgba(0,123,255,0.4);
-  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  display: none; /* Hidden - redundant with sidebar new chat */
+}
   z-index: 15;
 }
 .fab-new-chat:active { transform: scale(0.9); }
