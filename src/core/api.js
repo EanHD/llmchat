@@ -18,7 +18,8 @@ export class KaiAPIClient {
       temperature = 0.7,
       maxTokens = null,
       stream = false,
-      timeout = 120000 // 120 second timeout
+      timeout = 120000, // 120 second timeout
+      ventContext = null // NEW: vent detection context
     } = options;
 
     const payload = {
@@ -30,6 +31,11 @@ export class KaiAPIClient {
 
     if (maxTokens) {
       payload.max_tokens = maxTokens;
+    }
+    
+    // Add vent context if provided
+    if (ventContext) {
+      payload.vent_context = ventContext;
     }
 
     const controller = new AbortController();
@@ -99,7 +105,8 @@ export class KaiAPIClient {
       model = 'granite-local',
       temperature = 0.7,
       maxTokens = null,
-      timeout = 60000 // 60 second timeout
+      timeout = 60000, // 60 second timeout
+      ventContext = null // NEW: vent detection context
     } = options;
 
     const payload = {
@@ -111,6 +118,11 @@ export class KaiAPIClient {
 
     if (maxTokens) {
       payload.max_tokens = maxTokens;
+    }
+    
+    // Add vent context if provided
+    if (ventContext) {
+      payload.vent_context = ventContext;
     }
 
     // Create AbortController for timeout if not provided

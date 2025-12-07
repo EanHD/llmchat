@@ -18,6 +18,7 @@ import { attachments, FileCategories } from '../core/attachments.js';
 import { tts } from '../core/tts.js';
 import { stt } from '../core/stt.js';
 import { voiceMode } from '../core/voice-mode.js';
+import { ventDetector } from '../core/vent-detector.js';
 
 export class ChatUI {
   constructor() {
@@ -724,6 +725,15 @@ export class ChatUI {
       this.adjustTextareaHeight();
       this.clearContext();
       this.toggleInputButtons();
+      
+      // Analyze message for venting (before creating assistant message)
+      const ventAnalysis = ventDetector.analyze(content);
+      console.log('Vent detection:', ventAnalysis);
+      
+      // Show subtle visual feedback if venting detected
+      if (ventAnalysis.isVenting) {
+        this.showVentFeedback(ventAnalysis);
+      }
 
       // Create assistant message (pending)
       const assistantMessage = Message.createAssistantMessage(conversationId);
@@ -780,13 +790,25 @@ export class ChatUI {
       // Get settings
       const settings = await storage.getAllSettings();
 
+      // Prepare vent context for API
+      const ventContext = ventAnalysis.isVenting ? {
+        is_venting: true,
+        confidence: ventAnalysis.confidence,
+        intensity: ventAnalysis.intensity,
+        emotions: ventAnalysis.emotions,
+        needs_empathy: ventAnalysis.needsEmpathy,
+        needs_motivation: ventAnalysis.needsMotivation,
+        needs_validation: ventAnalysis.needsValidation,
+        system_prompt_addition: ventAnalysis.systemPromptAddition
+      } : null;
+
       // Check if agent mode is active
       if (agentMode.active) {
-        await this.agentResponse(assistantMessage, content, conversationId, settings);
+        await this.agentResponse(assistantMessage, content, conversationId, settings, ventContext);
       } else if (settings.streaming) {
-        await this.streamResponse(assistantMessage, apiMessages, settings);
+        await this.streamResponse(assistantMessage, apiMessages, settings, ventContext);
       } else {
-        await this.fetchResponse(assistantMessage, apiMessages, settings);
+        await this.fetchResponse(assistantMessage, apiMessages, settings, ventContext);
       }
 
       // Update conversation metadata
@@ -847,13 +869,14 @@ export class ChatUI {
   /**
    * Fetch response (non-streaming)
    */
-  async fetchResponse(assistantMessage, apiMessages, settings) {
+  async fetchResponse(assistantMessage, apiMessages, settings, ventContext = null) {
     const modelToUse = settings.model || 'granite-local';
     
     const response = await this.apiClient.sendMessage(apiMessages, {
       model: modelToUse,
       temperature: settings.temperature,
-      maxTokens: settings.maxTokens
+      maxTokens: settings.maxTokens,
+      ventContext
     });
 
     const responseContent = response.choices[0].message.content;
@@ -876,7 +899,7 @@ export class ChatUI {
    * Note: Streaming continues in background even if user switches conversations.
    * The stream saves progress to storage periodically and on completion.
    */
-  async streamResponse(assistantMessage, apiMessages, settings) {
+  async streamResponse(assistantMessage, apiMessages, settings, ventContext = null) {
     assistantMessage.updateStatus(MessageStatus.STREAMING);
     state.updateMessage(assistantMessage.id, assistantMessage.toJSON());
     
@@ -900,6 +923,9 @@ export class ChatUI {
       const stream = this.apiClient.streamMessage(apiMessages, {
         model: modelToUse,
         temperature: settings.temperature,
+        maxTokens: settings.maxTokens,
+        ventContext
+      });
         maxTokens: settings.maxTokens,
         signal: this.abortController.signal
       });
@@ -1006,7 +1032,7 @@ export class ChatUI {
   /**
    * Agent mode response - CLI-style sequential updates
    */
-  async agentResponse(assistantMessage, userContent, conversationId, settings) {
+  async agentResponse(assistantMessage, userContent, conversationId, settings, ventContext = null) {
     assistantMessage.updateStatus(MessageStatus.STREAMING);
     state.updateMessage(assistantMessage.id, assistantMessage.toJSON());
     state.setStreaming(true);
@@ -1017,8 +1043,11 @@ export class ChatUI {
     const originalConversationId = state.getState('currentConversationId');
     
     try {
+      // Pass vent context to agent mode if available
+      const agentOptions = ventContext ? { ventContext } : {};
+      
       // Process agent messages as they stream in
-      for await (const agentMsg of agentMode.processMessage(userContent, conversationId)) {
+      for await (const agentMsg of agentMode.processMessage(userContent, conversationId, agentOptions)) {
         // Format the agent message and append to content
         const formatted = agentMode.formatMessage(agentMsg);
         agentContent += formatted;
@@ -1397,6 +1426,70 @@ export class ChatUI {
     this.micBtn.classList.remove('listening');
     this.micBtn.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>';
     this.toggleInputButtons();
+  }
+
+  /**
+   * Show subtle visual feedback when venting is detected
+   */
+  showVentFeedback(analysis) {
+    const emotionIcons = {
+      frustration: '😤',
+      sadness: '😔',
+      stress: '😰',
+      selfDoubt: '🤔',
+      motivation: '💪'
+    };
+    
+    const intensityColors = {
+      high: '#ff4444',
+      medium: '#ffaa44',
+      low: '#44aaff'
+    };
+    
+    // Get primary emotion
+    const primaryEmotion = analysis.emotions[0] || 'frustration';
+    const icon = emotionIcons[primaryEmotion] || '💭';
+    const color = intensityColors[analysis.intensity];
+    
+    // Create toast notification
+    const toast = document.createElement('div');
+    toast.className = 'vent-toast';
+    toast.style.cssText = `
+      position: fixed;
+      top: calc(var(--safe-top) + 80px);
+      right: 20px;
+      background: ${color};
+      color: white;
+      padding: 12px 20px;
+      border-radius: var(--radius-pill);
+      font-size: 14px;
+      font-weight: 500;
+      box-shadow: var(--shadow-md);
+      z-index: 9999;
+      animation: slideIn 0.3s ease;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    `;
+    
+    const messages = {
+      high: 'I hear you, let me respond thoughtfully',
+      medium: 'Got it, processing with care',
+      low: 'Understood, responding...'
+    };
+    
+    toast.innerHTML = `
+      <span style="font-size: 18px;">${icon}</span>
+      <span>${messages[analysis.intensity]}</span>
+    `;
+    
+    document.body.appendChild(toast);
+    
+    // Remove after 2.5 seconds
+    setTimeout(() => {
+      toast.style.animation = 'slideOut 0.3s ease';
+      setTimeout(() => toast.remove(), 300);
+    }, 2500);
   }
 
 }
